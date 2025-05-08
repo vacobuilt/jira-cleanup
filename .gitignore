@@ -54,3 +54,6 @@ logs/
 htmlcov/
 .pytest_cache/
 .tox/
+
+# Local tracking files
+jira_info.md
