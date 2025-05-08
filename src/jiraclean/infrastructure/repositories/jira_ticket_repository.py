@@ -9,8 +9,15 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any, Set
 
-from jira import JIRA, Issue
-from jira.exceptions import JIRAError
+try:
+    from jira import JIRA, Issue
+    from jira.exceptions import JIRAError
+except ImportError:
+    raise ImportError(
+        "The 'jira' package is required but not installed. "
+        "Please install it using 'pip install jira' before running this application. "
+        "Even in dry-run mode, the JIRA API is needed to read ticket information."
+    )
 
 from jiraclean.domain.entities.ticket import Ticket, User, Comment, ChangeLogItem
 from jiraclean.domain.repositories.ticket_repository import TicketRepository

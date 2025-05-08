@@ -10,39 +10,16 @@ import logging
 import time
 from typing import Dict, List, Any, Optional, Union, cast
 
-# Handle jira imports with a try-except block
+# Import jira - required dependency even in dry run mode
 try:
     from jira import JIRA
     from jira.exceptions import JIRAError
 except ImportError:
-    # Create dummy classes for type checking when jira package is not available
-    class JIRAError(Exception):
-        """Dummy JIRA Error class for type checking."""
-        status_code: int = 0
-        text: str = ""
-    
-    class JIRA:
-        """Dummy JIRA class for type checking."""
-        def __init__(self, *args, **kwargs):
-            pass
-        
-        def issue(self, *args, **kwargs):
-            pass
-        
-        def search_issues(self, *args, **kwargs):
-            pass
-        
-        def add_comment(self, *args, **kwargs):
-            pass
-        
-        def transition_issue(self, *args, **kwargs):
-            pass
-        
-        def transitions(self, *args, **kwargs):
-            pass
-        
-        def assign_issue(self, *args, **kwargs):
-            pass
+    raise ImportError(
+        "The 'jira' package is required but not installed. "
+        "Please install it using 'pip install jira' before running this application. "
+        "Even in dry-run mode, the JIRA API is needed to read ticket information."
+    )
 
 from .exceptions import (
     JiraAuthenticationError,
