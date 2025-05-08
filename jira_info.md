@@ -14,5 +14,6 @@ Changed the import structure to make `src` the sources root. This involved:
 2. Used relative imports within packages
 3. Updated package configuration in setup.py
 
-**Repository**: https://github.com/ldawson/repos/jira_cleanup
-**Commit**: TBD (after pushing changes)
+**Repository**: https://github.com/vacobuilt/jira-cleanup
+**Commit**: cbf2b0c
+**Pull Request**: N/A (direct push to main)
