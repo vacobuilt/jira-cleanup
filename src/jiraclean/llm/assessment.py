@@ -142,13 +142,39 @@ def assess_ticket(
     Raises:
         KeyError: If the specified template doesn't exist
     """
+    # Extract ticket key for better logging
+    ticket_key = ticket_data.get('key', 'UNKNOWN')
+    
+    ticket_yaml = format_ticket_as_yaml(ticket_data)
+    prompt = build_assessment_prompt(ticket_yaml, prompt_template)
+    
+    # First attempt with normal instructions
     try:
-        ticket_yaml = format_ticket_as_yaml(ticket_data)
-        prompt = build_assessment_prompt(ticket_yaml, prompt_template)
-        response = call_ollama_api(prompt, model, ollama_url)
-        return parse_llm_response(response)
+        logger.info(f"ATTEMPT #1: Making assessment for ticket {ticket_key} using model {model}")
+        response = call_ollama_api(prompt, model, ollama_url, enhanced_json_instructions=False)
+        result = parse_llm_response(response)
+        logger.info(f"ATTEMPT #1: Successfully assessed ticket {ticket_key}")
+        return result
+    except ValueError as e:
+        if "Invalid JSON response" in str(e):
+            logger.warning(f"ATTEMPT #1 FAILED: Ticket {ticket_key} - JSON parsing error: {str(e)}")
+            
+            # Second attempt with enhanced JSON formatting instructions
+            try:
+                logger.info(f"RETRY ATTEMPT #2: Ticket {ticket_key} - Using enhanced JSON instructions")
+                response = call_ollama_api(prompt, model, ollama_url, enhanced_json_instructions=True)
+                result = parse_llm_response(response)
+                logger.info(f"RETRY ATTEMPT #2: Successfully assessed ticket {ticket_key} after retry")
+                return result
+            except Exception as retry_error:
+                logger.error(f"RETRY ATTEMPT #2 FAILED: Ticket {ticket_key} - Error: {str(retry_error)}")
+                return AssessmentResult.default()
+        else:
+            # Not a JSON parsing error, so don't retry
+            logger.error(f"Error during ticket assessment for {ticket_key}: {str(e)}")
+            return AssessmentResult.default()
     except Exception as e:
-        logger.error(f"Error during ticket assessment: {str(e)}")
+        logger.error(f"Error during ticket assessment for {ticket_key}: {str(e)}")
         if isinstance(e, KeyError):
             # Re-raise template not found errors
             raise
@@ -193,7 +219,8 @@ def build_assessment_prompt(ticket_yaml: str, template_name: str = "quiescent_as
 def call_ollama_api(
     prompt: str, 
     model: str = "llama3.2:latest",
-    base_url: str = "http://localhost:11434"
+    base_url: str = "http://localhost:11434",
+    enhanced_json_instructions: bool = False
 ) -> str:
     """
     Call the Ollama API with the given prompt and model.
@@ -202,6 +229,7 @@ def call_ollama_api(
         prompt: The prompt to send to Ollama
         model: The model name to use
         base_url: Base URL for Ollama API
+        enhanced_json_instructions: Whether to use enhanced JSON formatting instructions
         
     Returns:
         The response text from Ollama
@@ -211,11 +239,19 @@ def call_ollama_api(
     """
     url = f"{base_url}/api/generate"
     
+    base_system_msg = "You are an expert Jira ticket analyst. Provide JSON output only. For all JSON string values, especially in the planned_comment field, format all text as a single line with no line breaks. If you need to represent a line break in the planned_comment field, use the \\n escape sequence. All special characters in JSON strings must be properly escaped according to JSON formatting rules."
+    
+    # Add enhanced JSON formatting instructions if requested
+    if enhanced_json_instructions:
+        system_msg = base_system_msg + " IMPORTANT: Your previous response contained invalid JSON. Please ensure all JSON objects are complete with proper closing braces and that all property names are enclosed in double quotes. Do not include any text outside the JSON object. Make sure the output is a complete, valid JSON object."
+    else:
+        system_msg = base_system_msg
+    
     payload = {
         "model": model,
         "prompt": prompt,
         "stream": False,
-        "system": "You are an expert Jira ticket analyst. Provide JSON output only. For all JSON string values, especially in the planned_comment field, format all text as a single line with no line breaks. If you need to represent a line break in the planned_comment field, use the \\n escape sequence. All special characters in JSON strings must be properly escaped according to JSON formatting rules."
+        "system": system_msg
     }
     
     try:
@@ -242,6 +278,15 @@ def parse_llm_response(response: str) -> AssessmentResult:
     Raises:
         ValueError: If the response cannot be parsed
     """
+    # Print raw response for debugging the JSON parsing error 
+    # but also log it for record keeping in production
+    logger.debug("\n===== RAW LLM RESPONSE =====\n" + response + "\n===== END RAW RESPONSE =====\n")
+    
+    # Keep printing for immediate visibility during development and debugging
+    print("\n===== RAW LLM RESPONSE =====")
+    print(response)
+    print("===== END RAW RESPONSE =====\n")
+    
     if not response:
         raise ValueError("Empty response from LLM")
         

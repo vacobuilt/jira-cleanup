@@ -101,7 +101,7 @@ When working with LLM responses, we encountered issues with JSON formatting, esp
 Error parsing LLM response: Invalid control character at: line 7 column 56 (char 432)
 ```
 
-We implemented a more robust solution with two components:
+We implemented a more robust solution with several components:
 
 1. **Improved LLM Prompting**: Updated the system prompt to explicitly instruct the LLM on proper JSON formatting:
    ```python
@@ -117,7 +117,45 @@ We implemented a more robust solution with two components:
      - Remove invalid control characters
    - Try parsing again with the sanitized response
 
-This two-pronged approach significantly improves robustness by both preventing issues (better prompting) and gracefully handling them when they occur (better parsing). The result is a more reliable tool that can process a wider variety of LLM responses without failing.
+3. **Automatic Retry with Enhanced Instructions**: Added a retry mechanism that:
+   - Detects specific JSON parsing errors
+   - Automatically retries the LLM call with enhanced JSON formatting instructions
+   - Provides clear, detailed logging of both attempts
+   - Falls back to a default response if both attempts fail
+
+These improvements significantly enhance robustness by preventing issues (better prompting), gracefully handling them when they occur (better parsing), and providing fallback options (retry mechanism). The result is a more reliable tool that can process a wider variety of LLM responses with minimal failures.
+
+## Ticket Pre-filtering System (2025-05-08)
+
+To improve efficiency and reduce unnecessary LLM API calls, we've implemented a ticket pre-filtering system that applies basic quiescence criteria before sending tickets to the LLM for detailed assessment.
+
+### Design Principles
+
+1. **Efficiency**: Filter out obvious non-quiescent tickets early to reduce LLM API usage
+2. **Accuracy**: Use objective criteria that align with the LLM's more detailed assessment
+3. **Configurability**: Allow customization of filtering criteria
+4. **Composability**: Enable combining multiple filter types for complex criteria
+5. **Testability**: Make filters simple, focused, and independently testable
+
+### Implementation
+
+We created a filter framework with several filter types:
+
+1. **MinimumAgeFilter**: Checks if tickets are older than a specified threshold (default: 14 days)
+2. **RecentActivityFilter**: Filters out tickets with recent activity (default: activity within 7 days)
+3. **StatusFilter**: Excludes tickets with specified statuses (default: "Closed", "Done", "Resolved")
+4. **CompositeFilter**: Combines multiple filters with AND logic
+
+These filters are used by the `ProjectTicketIterator` to pre-filter tickets before they're processed by the LLM. Only tickets passing all filter criteria are sent for detailed assessment.
+
+### Benefits
+
+1. **Cost Reduction**: Significantly reduces the number of LLM API calls
+2. **Performance Improvement**: Speeds up processing by filtering out tickets early
+3. **Better Resource Allocation**: Focuses LLM processing on tickets that are actually candidates for quiescence
+4. **Enhanced Logging**: Provides detailed statistics on filtered vs. processed tickets
+
+The pre-filtering system has been integrated into the `QuiescentTicketProcessor`, which now handles both individual tickets and bulk project processing with pre-filtering.
 
 ## Package Structure Consolidation (2025-05-08)
 
