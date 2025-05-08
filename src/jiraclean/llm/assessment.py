@@ -16,7 +16,7 @@ from typing import Dict, Any, Optional, List
 from jiraclean.prompts import PromptRegistry
 from jiraclean.utils.formatters import format_ticket_as_yaml
 
-logger = logging.getLogger('jira_cleanup.llm')
+logger = logging.getLogger('jiraclean.llm')
 
 # Global prompt registry instance
 _prompt_registry = None

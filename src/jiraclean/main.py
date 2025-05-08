@@ -30,7 +30,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[logging.StreamHandler()]
 )
-logger = logging.getLogger('jira_cleanup')
+logger = logging.getLogger('jiraclean')
 
 
 def display_assessment(ticket_key: str, assessment: AssessmentResult) -> None:

@@ -10,7 +10,7 @@ from typing import Dict, List, Any, Optional, Union
 
 from .client import JiraClient
 
-logger = logging.getLogger('jira_cleanup.jirautil.dry_run')
+logger = logging.getLogger('jiraclean.jirautil.dry_run')
 
 
 class DryRunJiraClient(JiraClient):

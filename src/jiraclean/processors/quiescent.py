@@ -12,7 +12,7 @@ from jiraclean.processors.base import TicketProcessor
 from jiraclean.jirautil import JiraClient
 from jiraclean.llm import assess_ticket, AssessmentResult
 
-logger = logging.getLogger('jira_cleanup.processors.quiescent')
+logger = logging.getLogger('jiraclean.processors.quiescent')
 
 
 class QuiescentTicketProcessor(TicketProcessor):
