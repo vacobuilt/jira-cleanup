@@ -55,7 +55,11 @@ class DryRunJiraClient(JiraClient):
             Simulated comment data dictionary
         """
         logger.info(f"DRY RUN: Would add comment to {issue_key}")
-        logger.info(f"DRY RUN: Comment text: {body}")
+        
+        # Print exactly what would be posted to the console
+        print(f"\n--- WOULD POST TO {issue_key} ---")
+        print(f"{body}")
+        print("-" * 50)
         
         # Create a simulated response
         return {
@@ -95,13 +99,22 @@ class DryRunJiraClient(JiraClient):
             # If we can't get the transition name, just use the ID
             pass
         
+        # Log the action
         logger.info(f"DRY RUN: Would transition {issue_key} to {transition_name} (id: {transition_id})")
         
+        # Print exactly what would be posted to the console
+        print(f"\n--- WOULD TRANSITION {issue_key} TO {transition_name} ---")
+        
         if comment:
-            logger.info(f"DRY RUN: With transition comment: {comment}")
+            print(f"With comment:")
+            print(f"{comment}")
         
         if fields:
-            logger.info(f"DRY RUN: Would update fields: {fields}")
+            print(f"With fields:")
+            for key, value in fields.items():
+                print(f"  {key}: {value}")
+        
+        print("-" * 50)
     
     def assign_issue(self, issue_key: str, assignee: Optional[str]) -> None:
         """
@@ -111,7 +124,55 @@ class DryRunJiraClient(JiraClient):
             issue_key: The Jira issue key
             assignee: Username to assign to, or None to unassign
         """
+        # Log the action
         if assignee:
             logger.info(f"DRY RUN: Would assign {issue_key} to {assignee}")
+            print(f"\n--- WOULD ASSIGN {issue_key} TO {assignee} ---")
         else:
             logger.info(f"DRY RUN: Would unassign {issue_key}")
+            print(f"\n--- WOULD UNASSIGN {issue_key} ---")
+        print("-" * 50)
+
+
+def create_jira_client(
+    url: str,
+    auth_method: str = 'token',
+    username: Optional[str] = None,
+    token: Optional[str] = None,
+    dry_run: bool = True,
+    max_retries: int = 3,
+    retry_delay: float = 2.0
+) -> Union[JiraClient, DryRunJiraClient]:
+    """
+    Factory function to create the appropriate Jira client.
+    
+    Args:
+        url: Jira server URL
+        auth_method: Authentication method ('token', 'basic', or 'oauth')
+        username: Jira username (required for 'token' and 'basic' auth)
+        token: API token (required for 'token' auth)
+        dry_run: If True, create a DryRunJiraClient, otherwise a real JiraClient
+        max_retries: Maximum number of retries for failed requests
+        retry_delay: Base delay between retries (seconds)
+    
+    Returns:
+        JiraClient or DryRunJiraClient instance
+    """
+    if dry_run:
+        return DryRunJiraClient(
+            url=url,
+            auth_method=auth_method,
+            username=username,
+            token=token,
+            max_retries=max_retries,
+            retry_delay=retry_delay
+        )
+    else:
+        return JiraClient(
+            url=url,
+            auth_method=auth_method,
+            username=username,
+            token=token,
+            max_retries=max_retries,
+            retry_delay=retry_delay
+        )

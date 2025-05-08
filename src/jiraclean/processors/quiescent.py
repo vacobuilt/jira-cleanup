@@ -123,12 +123,14 @@ class QuiescentTicketProcessor(TicketProcessor):
                         })
                 else:
                     # In dry run mode, just log the planned action
+                    # The actual comment content will be printed by the DryRunJiraClient
+                    self.jira_client.add_comment(ticket_key, assessment.planned_comment)
+                    
                     result['actions'].append({
                         'type': 'comment',
                         'description': 'Would add quiescent ticket comment (dry run)',
                         'success': True,
                         'details': {
-                            'comment_body': assessment.planned_comment[:100] + '...',  # Truncate for logging
                             'dry_run': True
                         }
                     })

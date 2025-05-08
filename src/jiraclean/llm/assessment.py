@@ -215,7 +215,7 @@ def call_ollama_api(
         "model": model,
         "prompt": prompt,
         "stream": False,
-        "system": "You are an expert Jira ticket analyst. Provide JSON output only."
+        "system": "You are an expert Jira ticket analyst. Provide JSON output only. For all JSON string values, especially in the planned_comment field, format all text as a single line with no line breaks. If you need to represent a line break in the planned_comment field, use the \\n escape sequence. All special characters in JSON strings must be properly escaped according to JSON formatting rules."
     }
     
     try:
@@ -264,9 +264,31 @@ def parse_llm_response(response: str) -> AssessmentResult:
         
     # Parse the JSON
     try:
-        result_dict = json.loads(cleaned_response)
+        # First attempt normal parsing
+        try:
+            result_dict = json.loads(cleaned_response)
+        except json.JSONDecodeError as e:
+            # If that fails, try to sanitize the response for common JSON formatting issues
+            logger.warning(f"Initial JSON parsing failed: {str(e)}, attempting to sanitize response")
+            
+            # Fix common issues with line breaks and control characters in JSON values
+            import re
+            
+            # Convert literal newlines in string values to \n for JSON compatibility
+            # This regex looks for string values that contain literal newlines
+            sanitized = re.sub(r'"\s*:\s*"(.*?)(?<!\\)(?:\\\\)*\n(.*?)"', 
+                              lambda m: f'": "{m.group(1)}\\n{m.group(2)}"', 
+                              cleaned_response, flags=re.DOTALL)
+            
+            # Remove any control characters that aren't valid in JSON strings
+            sanitized = re.sub(r'[\x00-\x1F\x7F]', '', sanitized)
+            
+            # Try parsing again with the sanitized response
+            result_dict = json.loads(sanitized)
+            logger.info("Successfully parsed JSON after sanitization")
+            
         return AssessmentResult.from_dict(result_dict)
-    except json.JSONDecodeError as e:
+    except Exception as e:
         logger.error(f"Error parsing LLM response: {str(e)}")
         logger.error(f"Raw response: {response}")
         raise ValueError(f"Invalid JSON response from LLM: {str(e)}")

@@ -41,17 +41,6 @@ class TicketIterator(ABC, Iterator[str]):
         """
         pass
     
-    @property
-    @abstractmethod
-    def total_tickets(self) -> Optional[int]:
-        """
-        Get the total number of tickets that will be yielded, if known.
-        
-        Returns:
-            Total number of tickets or None if unknown
-        """
-        pass
-    
     @abstractmethod
     def reset(self) -> None:
         """
@@ -71,27 +60,3 @@ class TicketIterator(ABC, Iterator[str]):
             Count of processed tickets
         """
         pass
-    
-    @property
-    def remaining_count(self) -> Optional[int]:
-        """
-        Get the number of tickets remaining to be processed, if total is known.
-        
-        Returns:
-            Count of remaining tickets or None if total is unknown
-        """
-        if self.total_tickets is None:
-            return None
-        return self.total_tickets - self.processed_count
-    
-    @property
-    def progress_percentage(self) -> Optional[float]:
-        """
-        Get the progress percentage, if total is known.
-        
-        Returns:
-            Percentage of completion (0-100) or None if total is unknown
-        """
-        if self.total_tickets is None or self.total_tickets == 0:
-            return None
-        return (self.processed_count / self.total_tickets) * 100

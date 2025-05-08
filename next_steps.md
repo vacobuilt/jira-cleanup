@@ -1,285 +1,155 @@
-# Next Steps for Jira Cleanup Implementation
+# Package Structure Consolidation Plan
 
-This document outlines the implementation roadmap for the Jira Cleanup project, breaking down the work into logical phases with clear deliverables.
+## Current State Analysis
 
-## Phase 1: Project Setup and Scaffolding ✅
+Our codebase currently has parallel package structures and configuration mismatches that need to be resolved:
 
-1. **Create Project Structure** ✅
-   - Set up the directory structure as defined in design_decisions.md ✅
-   - Create package __init__.py files with appropriate exports ✅
-   - Add setup.py for package installation ✅
-   - Configure logging ✅
+1. **Parallel Package Structures**:
+   - Flat structure at `src/` root level (main.py, iterators/, jirautil/, etc.)
+   - Namespaced structure under `src/jiraclean/` (main.py, iterators/, jirautil/, etc.)
 
-2. **Define Core Interfaces** ✅
-   - ~~Implement JiraClientInterface in jirautil/interfaces.py~~ (Replaced with concrete implementation) ✅
-   - Implement TicketIterator base class in iterators/base.py ✅
-   - Implement TicketProcessor base class in processors/base.py ✅
-   - Add appropriate exception classes ✅
+2. **Package Configuration Mismatch**:
+   - `pyproject.toml` (Poetry): Defines package as "jira-cleanup" with `packages = [{include = "jiraclean", from = "src"}]`
+   - `setup.py`: Defines package as "jira_cleanup" with `find_packages(where="src")`
+   - Entry points are different: `jiraclean.main:main` vs `src.main:main`
 
-3. **Configuration Management** ✅
-   - Implement environment variable loading ✅
-   - Create simple configuration file parser ⬜
-   - Define default configuration values ✅
+3. **Domain-Driven Architecture**:
+   - `src/domain/` and `src/infrastructure/` directories not currently integrated 
+   - Appears to represent a future architecture direction
 
-4. **CLI Foundation** ✅
-   - Set up argument parsing in main.py ✅
-   - Implement basic command-line interface ✅
-   - Add --help documentation ✅
+## Migration Goal
 
-## Phase 2: Core Implementation ✅
+Consolidate all functionality under the `jiraclean` namespace for cleaner architecture, simplified imports, and consistent package configuration. Remove redundant files and configurations.
 
-1. **Jira Client Implementation** ✅
-   - ~~Create StandardJiraClient class implementing JiraClientInterface~~ ✅
-   - Create JiraClient class with direct implementation ✅
-   - Implement authentication handlers (token, basic, OAuth) ✅
-   - Add error handling and retries ✅
-   - Create mock client for testing ⬜
+## Migration Plan
 
-2. **Ticket Iterators** ✅
-   - Implement ProjectTicketIterator (MVP) ✅
-   - Add pagination handling for large result sets ✅
-   - Implement iterator reset functionality ✅
-   - Add filtering options (status, age) ✅
+### Phase 1: Audit & Preparation
 
-3. **Basic Processor** ✅
-   - Create QuiescentTicketProcessor ✅
-   - Implement dry-run functionality ✅
-   - Add logging and reporting ✅
-   - Create action handlers (comment) ✅
+1. **File Comparison**:
+   - Compare all files between old (flat) and new (jiraclean) structure
+   - Identify any unique code or modifications in either version
+   - Document any critical differences for special handling
 
-4. **Main Process Flow** ✅
-   - Connect iterators to processors ✅
-   - Implement progress tracking ✅
-   - Add error handling and recovery ✅
-   - Create results summarization ✅
+2. **Baseline Functionality**:
+   - Run the application in its current state to ensure it works
+   - Document the command used and expected output
+   - Create a baseline for post-migration validation
 
-## Phase 3: Clean Architecture Implementation 🔄
+3. **Domain Integration Planning**:
+   - Evaluate how `domain/` and `infrastructure/` directories should be integrated
+   - Determine if they should be moved under jiraclean or kept separate
+   - Plan appropriate import patterns for integration
 
-1. **Domain Layer** ✅
-   - Define core domain entities (Ticket, Assessment, ActionRecommendation) ✅
-   - Implement domain services (QuiescenceEvaluator, CommentGenerator) ✅
-   - Create repository interfaces (TicketRepository, CommentRepository) ✅
-   - Define service interfaces (LlmService, PromptService) ✅
+4. **Version Control**:
+   - Create a new git branch for the migration
+   - Commit current state as baseline
+   - Consider tagging the pre-migration state for reference
 
-2. **Infrastructure Layer** ✅
-   - Implement repository adapters (DatabaseTicketRepository, JiraTicketRepository, JiraCommentRepository) ✅
-   - Create service implementations (OllamaLlmService, YamlPromptService) ✅
-   - Add data mapping between domain and external models ✅
-   - Implement error handling and logging ✅
+### Phase 2: Package Configuration
 
-3. **Application Layer** 🔄
-   - Create use case implementations ⬜
-   - Implement dependency injection container ⬜
-   - Add application services to orchestrate operations ⬜
-   - Ensure proper separation of concerns ⬜
+1. **Standard Configuration**:
+   - Remove `setup.py` since we're using Poetry via `pyproject.toml`
+   - Verify that `pyproject.toml` correctly references `jiraclean.main:main` as entry point
+   - Ensure all dependencies are correctly specified in `pyproject.toml`
 
-4. **Interface Layer** 🔄
-   - Update CLI to use clean architecture components ⬜
-   - Create presentation adapters ⬜
-   - Implement consistent error handling ⬜
-   - Add proper progress reporting ⬜
+2. **Build Validation**:
+   - Verify package can be built with Poetry: `poetry build`
+   - Check that the built package has the correct structure
+   - Validate that no files are missing from the distribution
 
-5. **Migration Path** 🔄
-   - Provide compatibility layer for existing code ⬜
-   - Document transition strategy ⬜
-   - Add deprecation notices to legacy components ⬜
-   - Create examples of usage with new architecture ⬜
+### Phase 3: Code Migration
 
-## Phase 4: Testing and Validation ⬜
+1. **Module by Module Migration**:
+   - Systematically work through each module in the flat structure
+   - For each module, determine if there's already an equivalent in jiraclean
+   - Merge any unique code or functionality
+   - Prioritize order: utils → models → core functionality → CLI
 
-1. **Unit Test Suite** ⬜
-   - Write tests for domain entities and services ⬜
-   - Create tests for repository implementations ⬜
-   - Test different configuration scenarios ⬜
-   - Verify error handling ⬜
+2. **Import Updates**:
+   - Update all imports in migrated files to use `jiraclean` namespace
+   - Search for all relative imports and update accordingly
+   - Example: change `from utils.config import X` to `from jiraclean.utils.config import X`
 
-2. **Integration Tests** ⬜
-   - Set up test Jira instance ⬜
-   - Create test tickets with various states ⬜
-   - Verify end-to-end functionality ⬜
-   - Test different policy configurations ⬜
+3. **Domain Integration**:
+   - Move `domain/` and `infrastructure/` under the `jiraclean` namespace
+   - Update imports in these modules to reflect new location
+   - Ensure any references to these modules are updated throughout codebase
 
-3. **Usability Testing** ⬜
-   - Verify CLI functionality ⬜
-   - Test configuration file parsing ⬜
-   - Validate error messages and logging ⬜
-   - Ensure clean handling of edge cases ⬜
+4. **Special Cases**:
+   - Handle any custom modifications or unique functionality identified in the audit
+   - Pay special attention to:
+     - Configuration loading
+     - File paths resolution
+     - Plugin/extension mechanisms
 
-4. **Performance Testing** ⬜
-   - Test with large ticket sets ⬜
-   - Optimize batch sizes and pagination ⬜
-   - Measure and document memory usage ⬜
-   - Identify potential bottlenecks ⬜
+### Phase 4: Validation & Cleanup
 
-## Phase 5: Policy Implementation 🔄
+1. **Functional Testing**:
+   - Run the application with the exact commands documented in Phase 1
+   - Verify all functionality works as expected
+   - Test with various command-line options
 
-1. **Policy Configuration** ⬜
-   - Create YAML schema for policy definition ⬜
-   - Implement policy loading and validation ⬜
-   - Add policy group concept ⬜
-   - Create default policies ⬜
+2. **Redundant File Removal**:
+   - Once functionality is confirmed, remove redundant files:
+     - `src/main.py`
+     - `src/iterators/`, `src/jirautil/`, `src/llm/`, etc.
+     - `src/utils/`, `src/processors/`, `src/prompts/`
+   - Be careful to only remove files that have been successfully migrated
 
-2. **Policy Application Logic** 🔄
-   - Implement criteria evaluation engine 🔄
-   - Create rule-based selection system ⬜
-   - Add action determination logic ✅
-   - Implement tiered response system ⬜
+3. **Installation Testing**:
+   - Install the package locally with Poetry: `poetry install`
+   - Verify the CLI entry point works: `jiraclean --help`
+   - Test core functionality from the installed package
 
-3. **Advanced Processors** 🔄
-   - Create PolicyBasedProcessor ⬜
-   - Implement multi-stage processing ⬜
-   - Add comment templating system ✅
-   - Create specialized processors for different governance models 🔄
+4. **Final Cleanup**:
+   - Remove any temporary files or backups
+   - Remove any debugging code or comments
+   - Ensure consistent code style across all files
 
-4. **Enhanced Iterators** ⬜
-   - Implement JQLTicketIterator ⬜
-   - Add AgeBasedTicketIterator ⬜
-   - Create composite iterator for complex filtering ⬜
-   - Implement stateful iterator to track processed tickets ⬜
+### Phase 5: Documentation
 
-## Phase 6: Documentation and Deployment ⬜
+1. **README Updates**:
+   - Update installation instructions
+   - Update usage examples with correct import patterns
+   - Ensure CLI examples use the correct command names
 
-1. **User Documentation** ⬜
-   - Create detailed usage guide ⬜
-   - Document all configuration options ⬜
-   - Provide policy examples ⬜
-   - Add troubleshooting section ⬜
+2. **Architecture Documentation**:
+   - Document the consolidated package structure
+   - Update any architecture diagrams
+   - Document the rationale for the consolidation in `design_decisions.md`
 
-2. **Developer Documentation** ⬜
-   - Document extension points ⬜
-   - Create contributor guide ⬜
-   - Add API documentation ⬜
-   - Provide example implementations ⬜
+3. **Code Examples**:
+   - Update any example code in documentation
+   - Verify examples match the current implementation
 
-3. **Packaging** ✅
-   - Finalize setup.py ✅
-   - Create requirements.txt ✅
-   - Add Docker container support ⬜
-   - Prepare for PyPI publication ⬜
+## Verification Checklist
 
-4. **Deployment Tools** ⬜
-   - Create example deployment scripts ⬜
-   - Add scheduling configuration ⬜
-   - Document environment setup ⬜
-   - Provide sample CI/CD pipeline ⬜
+After completing all phases, verify:
 
-## Implementation Priorities
+- [ ] All functionality continues to work as before
+- [ ] Package builds successfully with Poetry
+- [ ] CLI entry point works correctly
+- [ ] All tests pass
+- [ ] No duplicate or redundant files remain
+- [ ] Documentation accurately reflects the new structure
+- [ ] Code imports are consistent throughout the codebase
 
-To achieve a functional MVP quickly while building toward the complete solution:
+## Rollback Plan
 
-1. **First Milestone: Basic Ticket Iterator** ✅
-   - Simple project-based ticket iterator ✅
-   - Basic CLI with project selection ✅
-   - Dry-run output of matching tickets ✅
-   - Estimated effort: 2-3 days
+In case of issues:
 
-2. **Second Milestone: Action Implementation** ✅
-   - Comment posting to tickets ✅
-   - Status transitions ⬜
-   - Simple fixed policy (inactive tickets) ✅
-   - Estimated effort: 3-4 days
+1. Return to the tagged/branched version from Phase 1
+2. Document specific issues encountered
+3. Create a more targeted migration plan addressing the issues
 
-3. **Third Milestone: Clean Architecture** 🔄
-   - Domain model implementation ✅
-   - Repository and service interfaces ✅
-   - Infrastructure implementations ✅
-   - Application use cases ⬜
-   - Estimated effort: 4-5 days
+## Timeline
 
-4. **Fourth Milestone: Configuration System** ⬜
-   - YAML policy definition ⬜
-   - Template-based comments ✅
-   - Multiple policy support ⬜
-   - Estimated effort: 4-5 days
+Estimated timeline for completion:
 
-5. **Fifth Milestone: Advanced Features** ⬜
-   - Multiple iterator types ⬜
-   - Enhanced filtering ⬜
-   - Reporting and metrics ⬜
-   - Estimated effort: 5-7 days
+- Phase 1 (Audit & Preparation): 1 day
+- Phase 2 (Package Configuration): 0.5 day
+- Phase 3 (Code Migration): 2-3 days
+- Phase 4 (Validation & Cleanup): 1 day
+- Phase 5 (Documentation): 0.5 day
 
-## Lessons to Incorporate from Original Project
-
-1. **Preserve Valuable Features** ✅
-   - LLM integration for intelligent assessment ✅
-   - Detailed ticket information gathering ✅
-   - Dry-run capability for safety ✅
-
-2. **Address Limitations** ✅
-   - Remove database dependency ✅
-   - Eliminate hard-coded values ✅
-   - Generalize beyond single client assumptions ✅
-
-3. **Enhance Capabilities** 🔄
-   - Add more action types 🔄
-   - Create flexible policy system ⬜
-   - Support multiple assessment approaches ✅
-
-## Architectural Improvements
-
-1. **Clean Domain Model** ✅
-   - Self-contained entities with business logic ✅
-   - Rich domain behavior and validation ✅
-   - Strong type safety and immutability where appropriate ✅
-
-2. **Dependency Inversion** ✅
-   - Domain defines interfaces, infrastructure implements them ✅
-   - Application services use repository abstractions ✅
-   - External services accessed through defined interfaces ✅
-
-3. **Separation of Concerns** 🔄
-   - Presentation logic separated from business logic ⬜
-   - Data access separated from domain logic ✅
-   - External service integration isolated in adapters ✅
-
-4. **Testability** ⬜
-   - Domain logic testable without infrastructure ⬜
-   - Repository interfaces mockable for testing ⬜
-   - Services designed for dependency injection ✅
-
-## Reuse Opportunities
-
-Portions of the original code that may be adaptable:
-
-1. **LLM Integration Pattern** ✅
-   - Abstract the API call mechanism ✅
-   - Generalize prompt construction ✅
-   - Preserve response parsing ✅
-
-2. **Ticket Detail Collection** ✅
-   - Adapt comprehensive detail gathering ✅
-   - Reuse field mapping logic ✅
-   - Preserve changelog processing ✅
-
-3. **Comment Generation** ✅
-   - Extract templating concepts ✅
-   - Reuse mention formatting ✅
-   - Preserve deadline calculation logic ✅
-
-## Risk Mitigation
-
-1. **API Rate Limiting** ✅
-   - Implement exponential backoff ✅
-   - Add request throttling ✅
-   - Monitor usage metrics ✅
-
-2. **Permission Issues** ✅
-   - Verify permissions before actions ✅
-   - Gracefully handle unauthorized operations ✅
-   - Document required permissions ⬜
-
-3. **Configuration Complexity** 🔄
-   - Start with simple configuration ✅
-   - Add validation for config files ⬜
-   - Provide clear error messages ✅
-
-4. **Error Handling** ✅
-   - Implement global exception handling ✅
-   - Add retry mechanisms for transient failures ✅
-   - Create detailed logging ✅
-
-5. **Architectural Drift** 🔄
-   - Enforce clean architecture boundaries ⬜
-   - Add automated architecture tests ⬜
-   - Document design patterns and principles ✅
-   - Conduct regular architecture reviews ⬜
+Total estimated time: 5-6 days of effort

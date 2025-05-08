@@ -1,14 +1,23 @@
 """
-Jira client utilities for the Jira Cleanup tool.
+Jira API utilities and interfaces for Jira Cleanup.
 
-This module provides factory functions for creating Jira clients,
-both real and dry-run variants.
+This package handles the interaction with Jira, abstracting the API
+details and providing a clean interface for the rest of the application.
 """
 
 from typing import Optional
 
 from .client import JiraClient
 from .dry_run_client import DryRunJiraClient
+from .exceptions import (
+    JiraClientError,
+    JiraAuthenticationError,
+    JiraConnectionError,
+    JiraNotFoundError,
+    JiraPermissionError,
+    JiraRateLimitError,
+    JiraOperationError
+)
 
 
 def create_jira_client(
@@ -45,3 +54,17 @@ def create_jira_client(
             username=username,
             token=token
         )
+
+
+__all__ = [
+    'JiraClient',
+    'DryRunJiraClient',
+    'create_jira_client',
+    'JiraClientError',
+    'JiraAuthenticationError',
+    'JiraConnectionError',
+    'JiraNotFoundError',
+    'JiraPermissionError',
+    'JiraRateLimitError',
+    'JiraOperationError'
+]

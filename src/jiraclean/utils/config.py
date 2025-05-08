@@ -11,9 +11,18 @@ import argparse
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-from dotenv import load_dotenv
+# Initialize logger early
+logger = logging.getLogger('jiraclean.utils.config')
 
-logger = logging.getLogger('jira_cleanup.utils.config')
+# Package is python-dotenv but imported as dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    # If not installed, create a dummy function
+    def load_dotenv(**kwargs):
+        """Dummy implementation when dotenv is not available."""
+        logger.warning("python-dotenv package not found. .env file loading is disabled.")
+        return False
 
 
 def load_environment_config(env_file: Optional[str] = None) -> Dict[str, Any]:

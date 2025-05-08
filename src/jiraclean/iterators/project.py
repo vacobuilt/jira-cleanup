@@ -44,7 +44,6 @@ class ProjectTicketIterator(TicketIterator):
         # Iterator state
         self.start_at = 0
         self.current_batch: List[str] = []
-        self._total: Optional[int] = None
         self._processed = 0
         
     def __iter__(self) -> 'ProjectTicketIterator':
@@ -99,7 +98,6 @@ class ProjectTicketIterator(TicketIterator):
         This method updates:
         - current_batch with next batch of tickets
         - start_at for pagination
-        - _total if not already set
         """
         # Build JQL query
         jql = self._build_jql()
@@ -125,27 +123,21 @@ class ProjectTicketIterator(TicketIterator):
         
         # Update state
         self.start_at += len(results)
-        self.current_batch = [issue.get("key") for issue in results]
         
-        # Get total if not already set
-        if self._total is None and hasattr(results, "total"):
-            self._total = getattr(results, "total", len(results))
-    
-    @property
-    def total_tickets(self) -> Optional[int]:
-        """
-        Get the total number of tickets that match the criteria, if known.
+        # Create a new list with proper type enforcement
+        keys: List[str] = []
+        for issue in results:
+            # Make sure we have a string key, using a default if missing
+            key = issue.get("key")
+            if isinstance(key, str):
+                keys.append(key)
+            else:
+                # Generate a fallback key if missing to maintain types
+                fallback_key = f"{self.project_key}-unknown-{len(keys)}"
+                keys.append(fallback_key)
         
-        Returns:
-            Total number of tickets or None if unknown
-        """
-        if self._total is None:
-            return None
-            
-        if self.max_results is not None:
-            return min(self._total, self.max_results)
-            
-        return self._total
+        # Assign the properly typed list
+        self.current_batch = keys
     
     def reset(self) -> None:
         """
@@ -156,7 +148,6 @@ class ProjectTicketIterator(TicketIterator):
         self.start_at = 0
         self.current_batch = []
         self._processed = 0
-        # Don't reset _total as we already know it
     
     @property
     def processed_count(self) -> int:
