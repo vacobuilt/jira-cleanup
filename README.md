@@ -22,11 +22,19 @@ This tool helps maintain a clean and efficient Jira workspace by identifying and
 - **Integration with Jira API**: Uses the Python Jira library for direct interaction with your Jira instance
 - **Local LLM Assessment**: Optional AI-powered ticket analysis for intelligent decision-making
 
+## Documentation
+
+- [Quick Start Guide](quickstart.md) - Step-by-step instructions for running the tool in dry run and production modes
+- [Architecture Analysis](jira_cleanup_architecture_analysis.md) - Detailed analysis of the project architecture with recommendations
+- [Code Recommendations](jira_cleanup_code_recommendations.md) - Concrete implementation examples for architectural improvements
+- [Design Decisions](design_decisions.md) - Record of important design decisions and rationales
+- [Next Steps](next_steps.md) - Implementation roadmap with phases and priorities
+
 ## Installation
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/jira-cleanup.git
+   git clone https://github.com/vacobuilt/jira-cleanup.git
    cd jira-cleanup
    ```
 
@@ -34,7 +42,7 @@ This tool helps maintain a clean and efficient Jira workspace by identifying and
    ```bash
    pip install -e .
    ```
-   
+
    Or install dependencies directly:
    ```bash
    pip install -r requirements.txt
@@ -144,24 +152,30 @@ jira_cleanup/
 ├── src/
 │   ├── __init__.py
 │   ├── main.py               # CLI entry point
+│   ├── domain/               # Domain layer (core business logic)
+│   │   ├── entities/         # Business objects
+│   │   ├── repositories/     # Data access interfaces 
+│   │   └── services/         # Domain services
+│   ├── infrastructure/       # External systems implementations
+│   │   ├── repositories/     # Repository implementations
+│   │   └── services/         # Service implementations
 │   ├── jirautil/             # Jira API interface
-│   │   ├── __init__.py
 │   │   ├── client.py         # Jira client implementation
 │   │   └── exceptions.py     # Custom exceptions
 │   ├── iterators/            # Ticket selection strategies
-│   │   ├── __init__.py
 │   │   ├── base.py           # Base iterator interface
 │   │   └── project.py        # Project-based iterator
 │   ├── processors/           # Ticket processing logic
-│   │   ├── __init__.py
 │   │   ├── base.py           # Base processor interface
 │   │   └── quiescent.py      # Quiescent ticket processor
-│   └── llm/                  # LLM integration
-│       ├── __init__.py
-│       └── assessment.py     # LLM assessment logic
+│   ├── llm/                  # LLM integration
+│   │   └── assessment.py     # LLM assessment logic
+│   ├── prompts/              # LLM prompt templates
+│   └── utils/                # Utility functions
 ├── .env.example              # Example environment config
 ├── requirements.txt          # Project dependencies
 ├── setup.py                  # Package installation
+├── quickstart.md             # Quick start guide
 └── README.md                 # This file
 ```
 
@@ -171,7 +185,8 @@ You can extend the functionality by:
 
 1. Creating new ticket iterators in `src/iterators/`
 2. Adding new processors in `src/processors/`
-3. Enhancing LLM prompts in `src/llm/assessment.py`
+3. Enhancing LLM prompts in `src/prompts/templates/`
+4. Implementing new domain services in `src/domain/services/`
 
 ## Requirements
 
@@ -181,3 +196,7 @@ You can extend the functionality by:
 - Python-dotenv
 - SQLAlchemy (for caching and tracking)
 - Optional: Ollama for LLM-powered analysis
+
+## License
+
+MIT License
