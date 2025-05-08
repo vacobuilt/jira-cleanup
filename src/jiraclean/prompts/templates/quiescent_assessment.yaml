@@ -10,10 +10,15 @@ template: |
   Today's date is: ${current_date}
 
   A quiescent ticket is one that:
-  1. Is not making material progress
-  2. Has stalled or been forgotten
-  3. Requires follow-up or action
-  4. May have unanswered questions
+  1. Has been active for a reasonable period of time (generally at least 1-2 weeks)
+  2. Is not making material progress since that initial period
+  3. Has stalled or been forgotten
+  4. Requires follow-up or action
+  5. May have unanswered questions
+
+  IMPORTANT: Tickets that are less than 1 week old or have a substantial update in the last week should NOT be considered quiescent unless there
+  is explicit evidence of abandonment or urgent action required. Recently created or updated tickets
+  are still in their normal activity period. A substantial update is defined as a comment or change that helps to move the ticket forward.
 
   Below is the complete information for a Jira ticket in YAML format:
 
