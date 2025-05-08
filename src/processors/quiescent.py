@@ -8,9 +8,9 @@ using LLM assessment and takes appropriate actions.
 import logging
 from typing import Dict, Any, List, Optional
 
-from jira_cleanup.src.processors.base import TicketProcessor
-from jira_cleanup.src.jirautil import JiraClient
-from jira_cleanup.src.llm import assess_ticket, AssessmentResult
+from .base import TicketProcessor
+from jirautil import JiraClient
+from llm import assess_ticket, AssessmentResult
 
 logger = logging.getLogger('jira_cleanup.processors.quiescent')
 

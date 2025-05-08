@@ -5,7 +5,7 @@ This package handles the interaction with LLM services for
 ticket analysis and assessment.
 """
 
-from jira_cleanup.src.llm.assessment import (
+from .assessment import (
     assess_ticket,
     AssessmentResult
 )

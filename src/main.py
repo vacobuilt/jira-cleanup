@@ -12,17 +12,17 @@ from pathlib import Path
 from typing import Dict, Any
 
 # Import utilities
-from jira_cleanup.src.utils.config import (
+from utils.config import (
     load_environment_config,
     validate_config,
     setup_argument_parser
 )
 
 # Import core components
-from jira_cleanup.src.jirautil import create_jira_client
-from jira_cleanup.src.iterators.project import ProjectTicketIterator
-from jira_cleanup.src.processors.quiescent import QuiescentTicketProcessor
-from jira_cleanup.src.llm import AssessmentResult
+from jirautil import create_jira_client
+from iterators.project import ProjectTicketIterator
+from processors.quiescent import QuiescentTicketProcessor
+from llm import AssessmentResult
 
 # Setup logging
 logging.basicConfig(
@@ -150,7 +150,7 @@ def process_tickets(jira_client, args) -> int:
 
 def show_version() -> None:
     """Display version information and exit."""
-    from jira_cleanup.src import __version__
+    from src import __version__
     print(f"Jira Cleanup v{__version__}")
     sys.exit(0)
 

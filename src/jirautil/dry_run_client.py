@@ -8,7 +8,7 @@ write operations without making actual changes to Jira.
 import logging
 from typing import Dict, List, Any, Optional, Union
 
-from jira_cleanup.src.jirautil.client import JiraClient
+from .client import JiraClient
 
 logger = logging.getLogger('jira_cleanup.jirautil.dry_run')
 

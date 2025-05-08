@@ -5,9 +5,9 @@ This package handles the interaction with Jira, abstracting the API
 details and providing a clean interface for the rest of the application.
 """
 
-from jira_cleanup.src.jirautil.client import JiraClient
-from jira_cleanup.src.jirautil.dry_run_client import DryRunJiraClient, create_jira_client
-from jira_cleanup.src.jirautil.exceptions import (
+from .client import JiraClient
+from .dry_run_client import DryRunJiraClient, create_jira_client
+from .exceptions import (
     JiraClientError,
     JiraAuthenticationError,
     JiraConnectionError,

@@ -7,8 +7,8 @@ handling pagination and filtering automatically.
 
 from typing import List, Dict, Any, Optional
 
-from jira_cleanup.src.iterators.base import TicketIterator
-from jira_cleanup.src.jirautil.client import JiraClient
+from .base import TicketIterator
+from jirautil.client import JiraClient
 
 
 class ProjectTicketIterator(TicketIterator):

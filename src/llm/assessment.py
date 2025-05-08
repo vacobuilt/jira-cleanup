@@ -13,8 +13,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
-from jira_cleanup.src.prompts import PromptRegistry
-from jira_cleanup.src.utils.formatters import format_ticket_as_yaml
+from prompts import PromptRegistry
+from utils.formatters import format_ticket_as_yaml
 
 logger = logging.getLogger('jira_cleanup.llm')
 

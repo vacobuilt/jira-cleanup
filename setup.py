@@ -11,7 +11,8 @@ setup(
     description="A configurable, policy-based tool for automated Jira ticket governance",
     author="Trilliant",
     author_email="info@trilliant.io",
-    packages=find_packages(),
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
     install_requires=[
         "jira>=3.5.0",
         "pyyaml>=6.0",
@@ -21,7 +22,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "jira-cleanup=jira_cleanup.src.main:main",
+            "jira-cleanup=src.main:main",
         ],
     },
     classifiers=[

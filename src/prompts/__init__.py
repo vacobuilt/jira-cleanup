@@ -5,6 +5,6 @@ This package handles the loading, registration, and rendering of prompt template
 used by LLM services and other parts of the application.
 """
 
-from jira_cleanup.src.prompts.registry import PromptRegistry, PromptTemplate
+from .registry import PromptRegistry, PromptTemplate
 
 __all__ = ['PromptRegistry', 'PromptTemplate']

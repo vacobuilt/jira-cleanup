@@ -13,7 +13,7 @@ from typing import Dict, List, Any, Optional, Union
 from jira import JIRA
 from jira.exceptions import JIRAError
 
-from jira_cleanup.src.jirautil.exceptions import (
+from .exceptions import (
     JiraAuthenticationError,
     JiraConnectionError,
     JiraNotFoundError,
