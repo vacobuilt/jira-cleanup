@@ -268,6 +268,8 @@ def main() -> int:
     logger.info(f"LLM assessment: {'Enabled' if not getattr(args, 'no_llm', False) else 'Disabled'}")
     
     try:
+        print(f"Using Jira URL: {config['jira']['url']}")
+
         # Create Jira client using the factory function
         jira_client = create_jira_client(
             url=config['jira']['url'],

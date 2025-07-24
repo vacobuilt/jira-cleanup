@@ -1,0 +1,208 @@
+
+Processing tickets for project UHES
+LLM assessment: Enabled
+Dry run mode: True
+--------------------------------------------------
+
+Ticket 1: UHES-4913
+  Type: Bug
+  Status: To Do
+  Summary: 13x NGSM: Description is missing for Meter Readings-Events
+
+=== LLM ASSESSMENT RESULTS ===
+Ticket: UHES-4913
+Is Quiescent: False
+Justification: Ticket has been updated recently (within 7 days) on 2025-05-08 by Mahadevi Turkar, reporter and assignee. This indicates that there is still active work being tracked.
+Responsible Party: Mahadevi Turkar
+Suggested Action: Assign this ticket to another team member for further investigation or request additional resources to proceed with the update.
+Suggested Deadline: 7 days
+
+--- PLANNED COMMENT ---
+[AUTOMATED QUIESCENCE ASSESSMENT] @~mahadeviturkar @~jimthorpe [~uhes-4913] Ticket UHES-4913 is not quiescent due to recent update on 2025-05-08. Please review and assign this ticket for further investigation or request additional resources to proceed with the update. Note: If no action is taken by 2025-05-15, this ticket may be closed.
+==================================================
+--------------------------------------------------
+
+Ticket 2: UHES-4910
+  Type: Bug
+  Status: To Do
+  Summary: NEXUS: Sev 7 vulnerability with activemq-client < 6.1.6
+
+=== LLM ASSESSMENT RESULTS ===
+Ticket: UHES-4910
+Is Quiescent: False
+Justification: Failed to assess ticket
+Responsible Party: Unknown
+Suggested Action: None
+Suggested Deadline: None
+
+--- PLANNED COMMENT ---
+Failed to generate comment
+==================================================
+--------------------------------------------------
+
+Ticket 3: UHES-4908
+  Type: Task
+  Status: To Do
+  Summary: (SAESA) MeterProgramVersion, NodeFirmwareVersion does not display for ANSI meters in UI.
+
+=== LLM ASSESSMENT RESULTS ===
+Ticket: UHES-4908
+Is Quiescent: False
+Justification: The ticket exists for less than 14 days (created_date: 2025-05-07T12:54:54.552-0400) and has activity within the last 7 days (updated_date: 2025-05-07T12:55:53.656-0400).
+Responsible Party: [~jimthorpe] (Jim Thorpe, Creator & Reporter)
+Suggested Action: Request Jim Thorpe to provide an update on the status of this ticket and indicate if it has made progress.
+Suggested Deadline: 7 days
+
+--- PLANNED COMMENT ---
+[AUTOMATED QUIESCENCE ASSESSMENT] @~jimthorpe (Jim Thorpe, Creator & Reporter), @~jimthorpe (Jim Thorpe, Assignee) and ~UHES-4908 team. This ticket appears to be quiescent due to lack of recent updates. Request Jim Thorpe to provide an update on the status of this ticket and indicate if it has made progress. Note: If no action is taken by 2025-05-15T12:00:00-0400, this ticket may be closed. Please review and confirm this assessment before proceeding with any action.
+==================================================
+--------------------------------------------------
+
+Ticket 4: UHES-4907
+  Type: Story
+  Status: To Do
+  Summary: (MANX) Trigger a new event code for when the TRP SUM cannot communicate with the meter due to HLS5 key mismatch.
+
+=== LLM ASSESSMENT RESULTS ===
+Ticket: UHES-4907
+Is Quiescent: False
+Justification: Ticket created on 2025-05-07, which is less than 14 days old, disqualifies it from being quiescent. Additionally, there are recent comments (2025-05-07T12:49:54) and activity within the last 7 days (2025-05-07T12:49:51 & 2025-05-07T12:54:12), indicating it is not quiescent.
+Responsible Party: HES Team
+Suggested Action: The HES Team should review the ticket and provide an update on its status or assign a new team member to investigate further.
+Suggested Deadline: 7 days from now
+
+--- PLANNED COMMENT ---
+[AUTOMATED QUIESCENCE ASSESSMENT] @HES Team, @Jim Thorpe, @Greg Johnston, This ticket appears quiescent due to lack of recent updates. Please review and provide an update on its status or assign a new team member to investigate further. Suggested deadline for action: 2025-05-15. Note: If no action is taken by this date, this ticket may be closed. The current status does not match the actual progress, and mentioned timeframes (e.g., "SUM 3.4.25 released to QE with FWQET-1994") indicate potential issues that need attention.
+==================================================
+--------------------------------------------------
+
+Ticket 5: UHES-4906
+  Type: Epic
+  Status: To Do
+  Summary: OEB Support in UHES
+
+=== LLM ASSESSMENT RESULTS ===
+Ticket: UHES-4906
+Is Quiescent: False
+Justification: The ticket was created on 2025-05-07 and has had no updates since then, but its status is still To Do.
+Responsible Party: Jim Thorpe
+Suggested Action: Update the status to In Progress and assign it to a different team member.
+Suggested Deadline: 7 days
+
+--- PLANNED COMMENT ---
+[AUTOMATED QUIESCENCE ASSESSMENT]    This epic will be used to track the feature request to support the Ontario Energy Board (OEB) feature. We should consider revisiting this ticket as it has been waiting for updates since its creation, and its status does not reflect its actual progress.   Please update the status to In Progress and assign it to a different team member to move forward with the requested features.   Note: If no action is taken by 2025-05-15, this ticket may be closed. 
+==================================================
+--------------------------------------------------
+
+Ticket 6: UHES-4905
+  Type: Bug
+  Status: To Do
+  Summary: CORS misconfiguration: Credentialed cross-origin requests allowed from any origin
+
+--- WOULD POST TO UHES-4905 ---
+[AUTOMATED QUIESCENCE ASSESSMENT] @Manisha Arora (Reporter) @Jim Thorpe (Assignee), this ticket appears quiescent due to lack of recent activity. The status To Do does not match the actual progress being made, and mentioned timeframes or deadlines that have passed include a strict whitelist of trusted origins and avoiding dynamically reflecting request origins unless validated against a whitelist. Please review the ticket and update its status accordingly. Note: If no action is taken by 2025-05-15, this ticket may be closed.
+--------------------------------------------------
+
+=== LLM ASSESSMENT RESULTS ===
+Ticket: UHES-4905
+Is Quiescent: True
+Justification: The ticket has been open for more than 2 weeks, and there are no updates in the last 7 days. The status is To Do, which does not match the actual progress indicated by the 'CORS misconfiguration' description. Additionally, mentioned timeframes or deadlines that have passed include a strict whitelist of trusted origins and avoiding dynamically reflecting request origins unless validated against a whitelist.
+Responsible Party: Manisha Arora (Reporter) and Jim Thorpe (Assignee)
+Suggested Action: Review the ticket's status and update it to reflect the actual progress being made towards resolving the issue
+Suggested Deadline: 7 days
+
+--- PLANNED COMMENT ---
+[AUTOMATED QUIESCENCE ASSESSMENT] @Manisha Arora (Reporter) @Jim Thorpe (Assignee), this ticket appears quiescent due to lack of recent activity. The status To Do does not match the actual progress being made, and mentioned timeframes or deadlines that have passed include a strict whitelist of trusted origins and avoiding dynamically reflecting request origins unless validated against a whitelist. Please review the ticket and update its status accordingly. Note: If no action is taken by 2025-05-15, this ticket may be closed.
+==================================================
+  Would add quiescent ticket comment (dry run)
+--------------------------------------------------
+
+Ticket 7: UHES-4904
+  Type: Bug
+  Status: To Do
+  Summary: WAN2K EB Collector is commissioned but the uHES not updating the collector status to commissioned state
+
+=== LLM ASSESSMENT RESULTS ===
+Ticket: UHES-4904
+Is Quiescent: False
+Justification: Failed to assess ticket
+Responsible Party: Unknown
+Suggested Action: None
+Suggested Deadline: None
+
+--- PLANNED COMMENT ---
+Failed to generate comment
+==================================================
+--------------------------------------------------
+
+Ticket 8: UHES-4903
+  Type: Story
+  Status: To Do
+  Summary: IS: Change Activate Image Schedule - component tests
+
+=== LLM ASSESSMENT RESULTS ===
+Ticket: UHES-4903
+Is Quiescent: False
+Justification: This ticket is not quiescent because it has activity within the last 7 days. The updated_date of 2025-05-08T10:57:59.528-0400 indicates that there was recent work done on this ticket, which disqualifies it from being considered quiescent.
+Responsible Party: Filip Kolev
+Suggested Action: Assignee should provide updates on the progress of the component tests and confirm if they are ready for testing.
+Suggested Deadline: 7 days
+
+--- PLANNED COMMENT ---
+[AUTOMATED QUIESCENCE ASSESSMENT] @~UHES-4903 @~Filip Kolev, @~Jim Thorpe, This ticket is not quiescent because it has activity within the last 7 days. The updated_date of 2025-05-08T10:57:59.528-0400 indicates that there was recent work done on this ticket, which disqualifies it from being considered quiescent. Assignee should provide updates on the progress of the component tests and confirm if they are ready for testing. Note: If no action is taken by 2025-05-15T10:57:59.528-0400, this ticket may be closed.
+==================================================
+--------------------------------------------------
+
+Ticket 9: UHES-4902
+  Type: Story
+  Status: To Do
+  Summary: IS: Change Billing Date - component tests
+
+=== LLM ASSESSMENT RESULTS ===
+Ticket: UHES-4902
+Is Quiescent: False
+Justification: The ticket has been updated 2 days ago, which is less than the mandatory 7-day silence period.
+Responsible Party: Filip Kolev (assignee) and Jim Thorpe (reporter and creator)
+Suggested Action: Assign a new assignee or update the status to In Progress to signal renewed effort.
+Suggested Deadline: 7 days
+
+--- PLANNED COMMENT ---
+[AUTOMATED QUIESCENCE ASSESSMENT] @~UHES-4902 Please address this ticket as soon as possible. Although the last update was just 2 days ago, it appears quiescent given its age (14 days) and lack of recent activity. To revive progress, consider updating the status or assigning a new team member to work on the component tests. @~Filip Kolev Please take the lead on this task as originally assigned. @~Jim Thorpe Be aware that you created the ticket and are now being reassigned. The deadline for action is 7 days from today's date (2025-05-15). Note: If no action is taken by 2025-06-05, this ticket may be closed.
+==================================================
+--------------------------------------------------
+
+Ticket 10: UHES-4901
+  Type: Story
+  Status: To Do
+  Summary: IS: Change Apparent Energy Computation - component tests
+
+=== LLM ASSESSMENT RESULTS ===
+Ticket: UHES-4901
+Is Quiescent: False
+Justification: This ticket is NOT quiescent because it has had an update in the last 7 days (2025-05-08T10:57:58.808-0400) and its status does not match its actual progress, as indicated by the 'To Do' status for a task that should be contributing to code coverage. The user assigned to this ticket is Filip Kolev, and the reporter is also Jim Thorpe.
+Responsible Party: Filip Kolev
+Suggested Action: Filip Kolev should review the ticket's progress, confirm that it matches its status, and take necessary actions to move forward.
+Suggested Deadline: 7 days
+
+--- PLANNED COMMENT ---
+[AUTOMATED QUIESCENCE ASSESSMENT]
+~UHES-4901
+This ticket appears quiescent due to the lack of updates since its creation on 2025-05-06T19:08:06.879-0400, and it currently has a 'To Do' status for a task that should be contributing to code coverage.
+Please review the progress and ensure it matches the status.
+Action required: Filip Kolev.
+No further action needed by Jim Thorpe or other users.
+Note: If no action is taken by 2025-05-15T10:57:58.808-0400, this ticket may be closed.
+==================================================
+--------------------------------------------------
+
+Processed 10 tickets from project UHES
+
+Processor statistics:
+  processed: 10
+  actioned: 1
+  errors: 0
+  skipped: 9
+  quiescent: 1
+  non_quiescent: 9
+  assessment_failures: 0
+  comments_added: 0

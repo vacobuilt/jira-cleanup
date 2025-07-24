@@ -42,6 +42,9 @@ def load_environment_config(env_file: Optional[str] = None) -> Dict[str, Any]:
     dotenv_loaded = False
     if env_file:
         env_path = Path(env_file)
+        #Print full path to env file
+        
+        print(f"Loading environment from {Path.absolute(env_path)}")
         if env_path.exists():
             logger.info(f"Loading environment from {env_path}")
             load_dotenv(dotenv_path=env_path)
