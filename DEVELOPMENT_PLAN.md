@@ -183,8 +183,8 @@ Enhance the Jira Cleanup tool with a modern CLI interface using Typer and beauti
 - [x] Test with real Jira data (NEMS project)
 - [x] Test both dry-run and production modes
 - [x] Test error scenarios and edge cases
-- [ ] Validate output formatting across different terminal sizes
-- [ ] Test with different color schemes and accessibility
+- [x] Validate output formatting across different terminal sizes
+- [x] Test with different color schemes and accessibility
 
 ### Documentation Updates
 - [x] Update README.md with new CLI examples
