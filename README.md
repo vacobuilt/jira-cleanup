@@ -29,14 +29,33 @@ poetry install
 cp .env.example .env
 # Edit .env with your Jira credentials
 
-# Test with dry run (pipx installation)
-jiraclean --project YOUR_PROJECT --dry-run --max-tickets 5
+# 🎯 Modern CLI with beautiful Rich output
+jiraclean main-command --project YOUR_PROJECT --dry-run --max-tickets 5
 
-# Or for development setup
+# 🚀 Interactive setup wizard
+jiraclean setup
+
+# ⚙️ Manage configurations
+jiraclean config list
+jiraclean config show
+
+# 📋 Get help with beautiful formatting
+jiraclean --help
+jiraclean main-command --help
+
+# For development setup
 source venv/bin/activate  # or: poetry shell
 export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
-python -m jiraclean --project YOUR_PROJECT --dry-run --max-tickets 5
+python -m jiraclean.cli.main main-command --project YOUR_PROJECT --dry-run
 ```
+
+### ✨ New Features
+
+- **🎨 Beautiful Rich Output**: Tickets displayed in prominent panels with color-coded status
+- **🎯 Modern CLI**: Typer-based interface with intuitive commands and auto-completion
+- **🔍 Visual Distinction**: Original tickets prominently highlighted, LLM feedback clearly differentiated
+- **🚀 Interactive Setup**: Guided configuration wizard for easy onboarding
+- **⚙️ Configuration Management**: Multiple Jira instances, easy switching and testing
 
 ## Documentation
 

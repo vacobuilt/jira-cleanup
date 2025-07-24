@@ -216,6 +216,32 @@ To support a new LLM provider:
 2. Add configuration options
 3. Update documentation
 
+### UI Development Guidelines
+
+The project uses Rich for beautiful terminal output and Typer for modern CLI interfaces:
+
+#### Rich UI Components (`src/jiraclean/ui/`)
+
+- **Console Singleton**: Use `from jiraclean.ui.console import console` for all output
+- **Reusable Components**: Create components in `ui/components.py` for consistent styling
+- **Formatters**: Add new formatters in `ui/formatters.py` for different data types
+- **Theme Consistency**: Follow the established color scheme and styling patterns
+
+#### Typer CLI Development (`src/jiraclean/cli/`)
+
+- **Command Structure**: Add new commands in `cli/commands.py`
+- **Rich Integration**: Use Rich formatting for all command output
+- **Help Text**: Include emojis and clear descriptions for better UX
+- **Validation**: Use Typer's built-in validation features
+
+#### UI Development Best Practices
+
+1. **Visual Hierarchy**: Original tickets should be prominently displayed
+2. **Clear Distinction**: LLM feedback should be visually different from ticket data
+3. **Consistent Styling**: Use the established theme and color patterns
+4. **Accessibility**: Ensure good contrast and readable formatting
+5. **Responsive Design**: Handle different terminal sizes gracefully
+
 ## Documentation
 
 ### Updating Documentation

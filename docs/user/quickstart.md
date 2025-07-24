@@ -88,24 +88,46 @@ This guide provides step-by-step instructions for running the Jira Cleanup tool 
 
 Dry run mode allows you to see what actions would be taken without actually modifying any tickets in Jira. This is perfect for testing your configuration and understanding the tool's behavior.
 
+### 🎯 Modern CLI with Beautiful Rich Output
+
+The new Typer-based CLI provides beautiful, color-coded output with Rich formatting:
+
+```bash
+# 🎨 Beautiful Rich output with prominent ticket display
+jiraclean main-command --project PROJECT_KEY --dry-run
+
+# 🚀 Interactive setup wizard
+jiraclean setup
+
+# ⚙️ Configuration management
+jiraclean config list
+jiraclean config show
+
+# 📋 Get help with beautiful formatting
+jiraclean --help
+jiraclean main-command --help
+```
+
 ### Basic Dry Run
 
 ```bash
-# For pipx installation (recommended)
+# For pipx installation (recommended) - Modern CLI
+jiraclean main-command --project PROJECT_KEY --dry-run
+
+# Legacy CLI (still supported)
 jiraclean --project PROJECT_KEY --dry-run
 
 # For development installation
-# First set up environment:
 source venv/bin/activate
 export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
-python -m jiraclean --project PROJECT_KEY --dry-run
+python -m jiraclean.cli.main main-command --project PROJECT_KEY --dry-run
 ```
 
 ### Dry Run with Limited Tickets
 
 ```bash
-# Process only 10 tickets to keep output manageable
-jiraclean --project PROJECT_KEY --max-tickets 10 --dry-run
+# Process only 10 tickets with beautiful Rich formatting
+jiraclean main-command --project PROJECT_KEY --max-tickets 10 --dry-run --no-llm
 ```
 
 ### Dry Run with LLM Assessment
@@ -113,13 +135,52 @@ jiraclean --project PROJECT_KEY --max-tickets 10 --dry-run
 If you have Ollama set up and running:
 
 ```bash
-# Use LLM assessment for more intelligent evaluation
-jiraclean --project PROJECT_KEY --with-llm --dry-run
+# Use LLM assessment with Rich-formatted output
+jiraclean main-command --project PROJECT_KEY --with-llm --dry-run
 ```
 
-### Output Example (Dry Run)
+### 🎨 Rich Output Example (New CLI)
 
-When running in dry run mode, you'll see output like:
+The new CLI provides beautiful, structured output with Rich formatting:
+
+```
+╭───────────────────────────────────────────── 🚀 Jira Cleanup Processing ─────────────────────────────────────────────╮
+│                                                                                                                      │
+│             Mode: 🔍 DRY RUN MODE                                                                                    │
+│                                                                                                                      │
+│          Project: PROJ                                                                                               │
+│                                                                                                                      │
+│      Max Tickets: 10                                                                                                 │
+│                                                                                                                      │
+│              LLM: ✅ LLM Assessment                                                                                  │
+│                                                                                                                      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ℹ️  Processing 10 tickets from project PROJ
+
+╭─────────────────────────────────────────── 🎫 Ticket PROJ-123 ───────────────────────────────────────────╮
+│                                                                                                           │
+│         Key: PROJ-123                    │                                                               │
+│        Type: Task                        │                                                               │
+│      Status: Open                        │                                                               │
+│    Priority: Medium                      │                                                               │
+│    Assignee: john.doe@company.com        │                                                               │
+│    Reporter: jane.smith@company.com      │                                                               │
+│     Summary: Update documentation for API changes                                                        │
+│                                                                                                           │
+│  Assessment: 🟡 QUIESCENT                                                                                │
+│      Reason: No activity for 20 days, needs attention                                                    │
+│ Responsible: john.doe@company.com                                                                         │
+│      Action: Add reminder comment                                                                         │
+│                                                                                                           │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+✅ Command completed successfully
+```
+
+### Legacy Output Example (Original CLI)
+
+The original CLI still works and provides text-based output:
 
 ```
 Processing tickets for project PROJ
