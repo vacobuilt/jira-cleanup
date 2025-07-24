@@ -10,6 +10,41 @@ This guide provides step-by-step instructions for running the Jira Cleanup tool 
 
 ## Setup
 
+### Option 1: Install with pipx (Recommended)
+
+1. Install directly with pipx:
+   ```bash
+   pipx install git+https://github.com/vacobuilt/jira-cleanup.git
+   ```
+
+2. Create and configure your `.env` file:
+   ```bash
+   # Copy the example file (if you have the repo)
+   cp .env.example .env
+   
+   # Or create a new .env file in your home directory
+   nano ~/.env  # or vim, code, etc.
+   ```
+
+3. Update the `.env` file with your Jira credentials:
+   ```ini
+   # Jira Authentication
+   JIRA_URL=https://your-instance.atlassian.net
+   JIRA_USER=your-email@example.com
+   JIRA_TOKEN=your-api-token
+   JIRA_AUTH_METHOD=token
+   
+   # Default Project Settings
+   JIRA_CLEANUP_PROJECT=YOUR_PROJECT
+   JIRA_CLEANUP_DRY_RUN=true  # Default to dry run for safety
+   
+   # Optional LLM Settings (only needed for LLM assessments)
+   OLLAMA_URL=http://localhost:11434
+   LLM_MODEL=llama3.2:latest
+   ```
+
+### Option 2: Development Installation
+
 1. Clone the repository:
    ```bash
    git clone https://github.com/yourusername/jira-cleanup.git
@@ -56,15 +91,21 @@ Dry run mode allows you to see what actions would be taken without actually modi
 ### Basic Dry Run
 
 ```bash
-# Use the --dry-run flag explicitly for clarity
-python -m jira_cleanup --project PROJECT_KEY --dry-run
+# For pipx installation (recommended)
+jiraclean --project PROJECT_KEY --dry-run
+
+# For development installation
+# First set up environment:
+source venv/bin/activate
+export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
+python -m jiraclean --project PROJECT_KEY --dry-run
 ```
 
 ### Dry Run with Limited Tickets
 
 ```bash
 # Process only 10 tickets to keep output manageable
-python -m jira_cleanup --project PROJECT_KEY --max-tickets 10 --dry-run
+jiraclean --project PROJECT_KEY --max-tickets 10 --dry-run
 ```
 
 ### Dry Run with LLM Assessment
@@ -73,7 +114,7 @@ If you have Ollama set up and running:
 
 ```bash
 # Use LLM assessment for more intelligent evaluation
-python -m jira_cleanup --project PROJECT_KEY --with-llm --dry-run
+jiraclean --project PROJECT_KEY --with-llm --dry-run
 ```
 
 ### Output Example (Dry Run)
