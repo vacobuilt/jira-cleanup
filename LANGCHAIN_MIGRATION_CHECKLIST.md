@@ -22,19 +22,19 @@ Migrate from direct Ollama HTTP requests to LangChain for LLM connections, follo
   - [ ] Document new configuration options
 
 ### **Phase 2: LangChain Integration Layer**
-- [ ] **Create LangChain LLM Factory**
-  - [ ] Create `src/jiraclean/llm/langchain_factory.py`
-  - [ ] Implement `create_llm()` function for different providers
-  - [ ] Support Ollama provider initially
-  - [ ] Add error handling and validation
-  - [ ] Include provider-specific configuration
+- [x] **Create LangChain LLM Factory**
+  - [x] Create `src/jiraclean/llm/langchain_factory.py`
+  - [x] Implement `create_llm()` function for different providers
+  - [x] Support Ollama provider initially
+  - [x] Add error handling and validation
+  - [x] Include provider-specific configuration
 
-- [ ] **Create LangChain Service Wrapper**
-  - [ ] Create `src/jiraclean/llm/langchain_service.py`
-  - [ ] Implement unified interface for LLM calls
-  - [ ] Maintain same API as current implementation
-  - [ ] Add proper error handling and retries
-  - [ ] Include logging and debugging support
+- [x] **Create LangChain Service Wrapper**
+  - [x] Create `src/jiraclean/llm/langchain_service.py`
+  - [x] Implement unified interface for LLM calls
+  - [x] Maintain same API as current implementation
+  - [x] Add proper error handling and retries
+  - [x] Include logging and debugging support
 
 ### **Phase 3: Replace Current Implementation**
 - [ ] **Update QuiescentTicketProcessor**
