@@ -51,6 +51,11 @@ def main(
         "--debug",
         help="🐛 Enable debug logging"
     ),
+    llm_provider: Optional[str] = typer.Option(
+        None,
+        "--llm-provider",
+        help="🤖 LLM provider to use (ollama, openai, anthropic, google)"
+    ),
     llm_model: Optional[str] = typer.Option(
         None,
         "--llm-model", "-m",
@@ -112,6 +117,7 @@ def main(
             dry_run=dry_run,
             max_tickets=max_tickets,
             debug=debug,
+            llm_provider=llm_provider,
             llm_model=llm_model,
             ollama_url=ollama_url,
             with_llm=with_llm,
@@ -126,6 +132,7 @@ def _run_main_processing(
     dry_run: bool,
     max_tickets: int,
     debug: bool,
+    llm_provider: Optional[str],
     llm_model: Optional[str],
     ollama_url: Optional[str],
     with_llm: bool,
@@ -204,8 +211,10 @@ def _run_main_processing(
             max_tickets=max_tickets,
             dry_run=dry_run,
             llm_enabled=with_llm,
+            llm_provider=llm_provider,
             llm_model=llm_model,
-            ollama_url=ollama_url
+            ollama_url=ollama_url,
+            config_dict=config
         )
         
         # Create and run processor
@@ -259,11 +268,29 @@ def config_command(
             # Load configuration
             config = load_configuration()
             
-            console.print("📋 [bold]Current Configuration:[/bold]")
-            console.print(f"• Jira URL: {config['jira']['url']}")
-            console.print(f"• Username: {config['jira']['username']}")
-            console.print(f"• Auth Method: {config['jira']['auth_method']}")
-            console.print(f"• Default Project: {config['defaults'].get('project', 'Not set')}")
+            # List all instances
+            instances = list_instances(config)
+            default_instance = config.get('default_instance')
+            
+            console.print("📋 [bold]Configured Jira Instances:[/bold]")
+            for name, instance_info in instances.items():
+                status = "✅ [green](default)[/green]" if instance_info['is_default'] else ""
+                console.print(f"• [bold]{name}[/bold] {status}")
+                console.print(f"  URL: {instance_info['url']}")
+                console.print(f"  Username: {instance_info['username']}")
+                console.print(f"  Description: {instance_info['description']}")
+                console.print()
+            
+            # Show LLM providers
+            from jiraclean.utils.config import list_llm_providers
+            providers = list_llm_providers(config)
+            console.print("🤖 [bold]Available LLM Providers:[/bold]")
+            for name, provider_info in providers.items():
+                status = "✅ [green](default)[/green]" if provider_info['is_default'] else ""
+                console.print(f"• [bold]{name}[/bold] {status}")
+                console.print(f"  Type: {provider_info['type']}")
+                console.print(f"  Models: {provider_info['model_count']} available")
+                console.print()
             
         elif action == "show":
             console.print(StatusIndicator.info("Showing current configuration..."))

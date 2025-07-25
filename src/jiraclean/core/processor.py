@@ -27,8 +27,10 @@ class ProcessingConfig:
     max_tickets: int
     dry_run: bool
     llm_enabled: bool
+    llm_provider: Optional[str] = None
     llm_model: Optional[str] = None
     ollama_url: Optional[str] = None
+    config_dict: Optional[Dict[str, Any]] = None  # Full configuration dictionary
 
 
 @dataclass
@@ -71,37 +73,53 @@ class TicketProcessor:
             from jiraclean.utils.config import get_llm_config, get_llm_model_config
             
             # Get LLM provider configuration
-            provider_name = getattr(config, 'llm_provider', None) or "ollama"
+            provider_name = config.llm_provider
+            if not provider_name:
+                # Use default provider from config or fallback to ollama
+                if config.config_dict and 'settings' in config.config_dict:
+                    provider_name = config.config_dict['settings'].get('llm', {}).get('default_provider', 'ollama')
+                else:
+                    provider_name = 'ollama'
             
-            # Load full configuration to get provider details
-            # Note: This is a temporary approach - ideally config should be passed differently
-            full_config = {
-                'settings': {
-                    'llm': {
-                        'default_provider': provider_name,
-                        'providers': {
-                            'ollama': {
-                                'type': 'ollama',
-                                'base_url': config.ollama_url or "http://localhost:11434",
-                                'models': [
-                                    {
-                                        'name': config.llm_model or "llama3.2:latest",
-                                        'alias': 'default'
-                                    }
-                                ]
+            # Use the full configuration if available, otherwise create minimal config
+            if config.config_dict:
+                full_config = config.config_dict
+            else:
+                # Fallback configuration for backward compatibility
+                full_config = {
+                    'settings': {
+                        'llm': {
+                            'default_provider': provider_name,
+                            'providers': {
+                                'ollama': {
+                                    'type': 'ollama',
+                                    'base_url': config.ollama_url or "http://localhost:11434",
+                                    'models': [
+                                        {
+                                            'name': config.llm_model or "llama3.2:latest",
+                                            'alias': 'default'
+                                        }
+                                    ]
+                                }
                             }
                         }
                     }
                 }
-            }
             
             try:
                 # Get provider configuration
                 provider_config = get_llm_config(full_config, provider_name)
-                model_config = get_llm_model_config(full_config, provider_name)
+                
+                # Get model configuration - use CLI override if provided
+                if config.llm_model:
+                    # Use the specific model from CLI
+                    model_name = config.llm_model
+                else:
+                    # Use default model from provider config
+                    model_config = get_llm_model_config(full_config, provider_name)
+                    model_name = model_config.get('name') or "llama3.2:latest"
                 
                 # Create LLM service with provider configuration
-                model_name = model_config.get('name') or "llama3.2:latest"
                 llm_service = create_langchain_service(
                     provider=provider_config.get('type', provider_name),
                     model=model_name,

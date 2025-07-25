@@ -357,13 +357,22 @@ def get_llm_model_config(config: Dict[str, Any], provider: Optional[str] = None,
     if not models:
         raise KeyError(f"No models configured for provider '{provider}'")
     
-    # If no alias specified, use first model or one marked as default
+    # If no alias specified, use provider's default_model or fallback logic
     if model_alias is None:
-        # Look for default alias first
+        # First try to use the provider's default_model setting
+        default_model = provider_config.get('default_model')
+        if default_model:
+            # Find model by name matching default_model
+            for model in models:
+                if model.get('name') == default_model:
+                    return model
+        
+        # Fallback: Look for model with 'default' alias
         for model in models:
             if model.get('alias') == 'default':
                 return model
-        # Fall back to first model
+        
+        # Final fallback: use first model
         return models[0]
     
     # Find model by alias
