@@ -278,14 +278,14 @@ def parse_llm_response(response: str) -> AssessmentResult:
     Raises:
         ValueError: If the response cannot be parsed
     """
-    # Print raw response for debugging the JSON parsing error 
-    # but also log it for record keeping in production
-    logger.debug("\n===== RAW LLM RESPONSE =====\n" + response + "\n===== END RAW RESPONSE =====\n")
+    # Only show raw response when debug logging is enabled
+    if logger.isEnabledFor(logging.DEBUG):
+        print("\n===== RAW LLM RESPONSE =====")
+        print(response)
+        print("===== END RAW RESPONSE =====\n")
     
-    # Keep printing for immediate visibility during development and debugging
-    print("\n===== RAW LLM RESPONSE =====")
-    print(response)
-    print("===== END RAW RESPONSE =====\n")
+    # Always log at debug level for record keeping
+    logger.debug("\n===== RAW LLM RESPONSE =====\n" + response + "\n===== END RAW RESPONSE =====\n")
     
     if not response:
         raise ValueError("Empty response from LLM")

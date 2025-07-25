@@ -31,4 +31,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-jiraclean = "jiraclean.main:main"
+jiraclean = "jiraclean.cli.main:main"

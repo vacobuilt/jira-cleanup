@@ -56,10 +56,11 @@ class DryRunJiraClient(JiraClient):
         """
         logger.info(f"DRY RUN: Would add comment to {issue_key}")
         
-        # Print exactly what would be posted to the console
-        print(f"\n--- WOULD POST TO {issue_key} ---")
-        print(f"{body}")
-        print("-" * 50)
+        # Only show detailed output when debug logging is enabled
+        if logger.isEnabledFor(logging.DEBUG):
+            print(f"\n--- WOULD POST TO {issue_key} ---")
+            print(f"{body}")
+            print("-" * 50)
         
         # Create a simulated response
         return {
@@ -102,19 +103,20 @@ class DryRunJiraClient(JiraClient):
         # Log the action
         logger.info(f"DRY RUN: Would transition {issue_key} to {transition_name} (id: {transition_id})")
         
-        # Print exactly what would be posted to the console
-        print(f"\n--- WOULD TRANSITION {issue_key} TO {transition_name} ---")
-        
-        if comment:
-            print(f"With comment:")
-            print(f"{comment}")
-        
-        if fields:
-            print(f"With fields:")
-            for key, value in fields.items():
-                print(f"  {key}: {value}")
-        
-        print("-" * 50)
+        # Only show detailed output when debug logging is enabled
+        if logger.isEnabledFor(logging.DEBUG):
+            print(f"\n--- WOULD TRANSITION {issue_key} TO {transition_name} ---")
+            
+            if comment:
+                print(f"With comment:")
+                print(f"{comment}")
+            
+            if fields:
+                print(f"With fields:")
+                for key, value in fields.items():
+                    print(f"  {key}: {value}")
+            
+            print("-" * 50)
     
     def assign_issue(self, issue_key: str, assignee: Optional[str]) -> None:
         """
@@ -127,11 +129,16 @@ class DryRunJiraClient(JiraClient):
         # Log the action
         if assignee:
             logger.info(f"DRY RUN: Would assign {issue_key} to {assignee}")
-            print(f"\n--- WOULD ASSIGN {issue_key} TO {assignee} ---")
+            # Only show detailed output when debug logging is enabled
+            if logger.isEnabledFor(logging.DEBUG):
+                print(f"\n--- WOULD ASSIGN {issue_key} TO {assignee} ---")
+                print("-" * 50)
         else:
             logger.info(f"DRY RUN: Would unassign {issue_key}")
-            print(f"\n--- WOULD UNASSIGN {issue_key} ---")
-        print("-" * 50)
+            # Only show detailed output when debug logging is enabled
+            if logger.isEnabledFor(logging.DEBUG):
+                print(f"\n--- WOULD UNASSIGN {issue_key} ---")
+                print("-" * 50)
 
 
 def create_jira_client(

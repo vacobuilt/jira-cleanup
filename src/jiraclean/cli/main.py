@@ -3,7 +3,6 @@ Entry point for the Typer-based CLI.
 """
 
 from jiraclean.cli.app import app
-from jiraclean.cli.commands import main_command, config_command, setup_command
 
 def main():
     """Main entry point for the CLI."""

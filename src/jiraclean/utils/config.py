@@ -2,12 +2,14 @@
 Configuration utilities for Jira Cleanup.
 
 This module provides functions for loading and validating
-configuration from environment variables and .env files.
+configuration from YAML files, environment variables and .env files.
+Supports multiple Jira instances with instance selection.
 """
 
 import os
 import logging
 import argparse
+import yaml
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -19,18 +21,60 @@ try:
     from dotenv import load_dotenv
 except ImportError:
     # If not installed, create a dummy function
-    def load_dotenv(**kwargs):
+    def load_dotenv(*args, **kwargs) -> bool:
         """Dummy implementation when dotenv is not available."""
         logger.warning("python-dotenv package not found. .env file loading is disabled.")
         return False
+
+
+def load_yaml_config(config_file: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """
+    Load configuration from YAML file.
+    
+    Searches for config files in this order:
+    1. Specified config_file path
+    2. ./config.yaml (current directory)
+    3. ~/.jiraclean/config.yaml (user home)
+    
+    Args:
+        config_file: Optional path to specific config file
+        
+    Returns:
+        Dictionary with configuration or None if no config found
+    """
+    config_paths = []
+    
+    # Add specific config file if provided
+    if config_file:
+        config_paths.append(Path(config_file))
+    
+    # Add default search paths
+    config_paths.extend([
+        Path('./config.yaml'),  # Current directory
+        Path.home() / '.jiraclean' / 'config.yaml',  # User home
+    ])
+    
+    # Try to load from config files
+    for config_path in config_paths:
+        if config_path.exists():
+            try:
+                logger.info(f"Loading YAML configuration from {config_path}")
+                with open(config_path, 'r') as f:
+                    config = yaml.safe_load(f)
+                return config
+            except Exception as e:
+                logger.error(f"Error loading config from {config_path}: {e}")
+                continue
+    
+    logger.info("No YAML configuration file found, falling back to environment variables")
+    return None
 
 
 def load_environment_config(env_file: Optional[str] = None) -> Dict[str, Any]:
     """
     Load configuration from .env file and environment variables.
     
-    First checks for specified .env file, then current directory, then user's home.
-    Falls back to environment variables if .env file is not found.
+    This is the fallback method when no YAML config is found.
     
     Args:
         env_file: Optional path to specific .env file to load
@@ -42,9 +86,6 @@ def load_environment_config(env_file: Optional[str] = None) -> Dict[str, Any]:
     dotenv_loaded = False
     if env_file:
         env_path = Path(env_file)
-        #Print full path to env file
-        
-        print(f"Loading environment from {Path.absolute(env_path)}")
         if env_path.exists():
             logger.info(f"Loading environment from {env_path}")
             load_dotenv(dotenv_path=env_path)
@@ -68,32 +109,115 @@ def load_environment_config(env_file: Optional[str] = None) -> Dict[str, Any]:
         if not dotenv_loaded:
             logger.warning("No .env file found. Using environment variables directly.")
     
-    # Load configuration
+    # Load configuration in legacy format
     config = {
-        'jira': {
-            'url': os.getenv('JIRA_URL', ''),
-            'username': os.getenv('JIRA_USER', ''),
-            'token': os.getenv('JIRA_TOKEN', ''),
-            'auth_method': os.getenv('JIRA_AUTH_METHOD', 'token')
+        'default_instance': 'default',
+        'instances': {
+            'default': {
+                'name': 'Default Instance',
+                'url': os.getenv('JIRA_URL', ''),
+                'username': os.getenv('JIRA_USER', ''),
+                'token': os.getenv('JIRA_TOKEN', ''),
+                'auth_method': os.getenv('JIRA_AUTH_METHOD', 'token'),
+                'description': 'Legacy environment variable configuration'
+            }
         },
-        'logging': {
-            'level': os.getenv('JIRA_CLEANUP_LOG_LEVEL', 'INFO'),
-        },
-        'defaults': {
-            'dry_run': os.getenv('JIRA_CLEANUP_DRY_RUN', 'true').lower() == 'true',
-            'force_dry_run': os.getenv('FORCE_DRY_RUN', 'false').lower() == 'true',
-            'project': os.getenv('JIRA_CLEANUP_PROJECT', ''),
-            'ollama_url': os.getenv('OLLAMA_URL', 'http://localhost:11434'),
-            'llm_model': os.getenv('LLM_MODEL', 'llama3.2:latest')
+        'settings': {
+            'logging': {
+                'level': os.getenv('JIRA_CLEANUP_LOG_LEVEL', 'INFO'),
+            },
+            'defaults': {
+                'dry_run': os.getenv('JIRA_CLEANUP_DRY_RUN', 'true').lower() == 'true',
+                'force_dry_run': os.getenv('FORCE_DRY_RUN', 'false').lower() == 'true',
+                'project': os.getenv('JIRA_CLEANUP_PROJECT', ''),
+                'max_tickets': 50
+            },
+            'llm': {
+                'ollama_url': os.getenv('OLLAMA_URL', 'http://localhost:11434'),
+                'model': os.getenv('LLM_MODEL', 'llama3.2:latest'),
+                'enabled': True
+            }
         }
     }
     
     return config
 
 
+def load_configuration(config_file: Optional[str] = None, env_file: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Load configuration from YAML file or fallback to environment variables.
+    
+    Args:
+        config_file: Optional path to YAML config file
+        env_file: Optional path to .env file (fallback only)
+        
+    Returns:
+        Dictionary with complete configuration
+    """
+    # Try YAML configuration first
+    config = load_yaml_config(config_file)
+    
+    # Fallback to environment variables if no YAML config
+    if config is None:
+        config = load_environment_config(env_file)
+    
+    return config
+
+
+def get_instance_config(config: Dict[str, Any], instance_name: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Get configuration for a specific Jira instance.
+    
+    Args:
+        config: Full configuration dictionary
+        instance_name: Name of instance to get, or None for default
+        
+    Returns:
+        Instance configuration dictionary
+        
+    Raises:
+        KeyError: If specified instance doesn't exist
+    """
+    if instance_name is None:
+        instance_name = config.get('default_instance', 'default')
+    
+    instances = config.get('instances', {})
+    if instance_name not in instances:
+        available = list(instances.keys())
+        raise KeyError(f"Instance '{instance_name}' not found. Available instances: {available}")
+    
+    return instances[instance_name]
+
+
+def list_instances(config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    """
+    List all available Jira instances.
+    
+    Args:
+        config: Full configuration dictionary
+        
+    Returns:
+        Dictionary of instance name -> instance info
+    """
+    instances = config.get('instances', {})
+    default_instance = config.get('default_instance')
+    
+    result = {}
+    for name, instance_config in instances.items():
+        result[name] = {
+            'name': instance_config.get('name', name),
+            'url': instance_config.get('url', ''),
+            'username': instance_config.get('username', ''),
+            'description': instance_config.get('description', ''),
+            'is_default': name == default_instance
+        }
+    
+    return result
+
+
 def validate_config(config: Dict[str, Any], args: argparse.Namespace) -> bool:
     """
-    Validate the combined configuration from environment and CLI args.
+    Validate the combined configuration from YAML/environment and CLI args.
     
     Args:
         config: Configuration dictionary
@@ -102,31 +226,41 @@ def validate_config(config: Dict[str, Any], args: argparse.Namespace) -> bool:
     Returns:
         True if configuration is valid, False otherwise
     """
-    # Check required Jira settings
-    if not config['jira']['url']:
-        logger.error("JIRA_URL environment variable is required")
+    try:
+        # Get the instance configuration
+        instance_config = get_instance_config(config, getattr(args, 'instance', None))
+        
+        # Check required Jira settings for the selected instance
+        if not instance_config.get('url'):
+            logger.error(f"URL is required for instance '{getattr(args, 'instance', 'default')}'")
+            return False
+        
+        if not instance_config.get('username'):
+            logger.error(f"Username is required for instance '{getattr(args, 'instance', 'default')}'")
+            return False
+        
+        if not instance_config.get('token') and instance_config.get('auth_method') == 'token':
+            logger.error(f"Token is required for token auth method in instance '{getattr(args, 'instance', 'default')}'")
+            return False
+        
+        # Check if project is specified
+        if not args.project:
+            logger.error("Project key is required (use --project)")
+            return False
+        
+        # Check if FORCE_DRY_RUN requires dry run mode
+        settings = config.get('settings', {})
+        defaults = settings.get('defaults', {})
+        if defaults.get('force_dry_run') and not args.dry_run:
+            logger.error("force_dry_run is set to true in configuration, but --dry-run flag is not provided")
+            logger.error("For safety, the program will not run in live mode when force_dry_run is enabled")
+            return False
+        
+        return True
+        
+    except KeyError as e:
+        logger.error(str(e))
         return False
-    
-    if not config['jira']['username']:
-        logger.error("JIRA_USER environment variable is required")
-        return False
-    
-    if not config['jira']['token'] and config['jira']['auth_method'] == 'token':
-        logger.error("JIRA_TOKEN environment variable is required for token auth method")
-        return False
-    
-    # Check if project is specified
-    if not args.project:
-        logger.error("Project key is required (use --project or JIRA_CLEANUP_PROJECT)")
-        return False
-    
-    # Check if FORCE_DRY_RUN requires dry run mode
-    if config['defaults']['force_dry_run'] and not args.dry_run:
-        logger.error("FORCE_DRY_RUN is set to true in the environment, but --dry-run flag is not provided")
-        logger.error("For safety, the program will not run in live mode when FORCE_DRY_RUN is enabled")
-        return False
-    
-    return True
 
 
 def setup_argument_parser(config: Dict[str, Any]) -> argparse.ArgumentParser:
@@ -134,7 +268,7 @@ def setup_argument_parser(config: Dict[str, Any]) -> argparse.ArgumentParser:
     Set up the command-line argument parser with consistent defaults.
     
     Args:
-        config: Configuration dictionary from environment
+        config: Configuration dictionary
         
     Returns:
         Configured argument parser
@@ -144,15 +278,33 @@ def setup_argument_parser(config: Dict[str, Any]) -> argparse.ArgumentParser:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     
+    # Get settings
+    settings = config.get('settings', {})
+    defaults = settings.get('defaults', {})
+    llm_settings = settings.get('llm', {})
+    logging_settings = settings.get('logging', {})
+    
+    # Instance selection
+    instances = config.get('instances', {})
+    default_instance = config.get('default_instance')
+    
+    parser.add_argument(
+        '--instance',
+        type=str,
+        choices=list(instances.keys()),
+        default=default_instance,
+        help=f'Jira instance to use (default: {default_instance})'
+    )
+    
     parser.add_argument(
         '--project',
         type=str,
-        default=config['defaults']['project'],
+        default=defaults.get('project', ''),
         help='Jira project key to process'
     )
     
-    # Set dry-run default based on both environment variables
-    dry_run_default = config['defaults']['dry_run'] or config['defaults']['force_dry_run']
+    # Set dry-run default based on configuration
+    dry_run_default = defaults.get('dry_run', True) or defaults.get('force_dry_run', False)
     
     parser.add_argument(
         '--dry-run',
@@ -164,35 +316,35 @@ def setup_argument_parser(config: Dict[str, Any]) -> argparse.ArgumentParser:
     parser.add_argument(
         '--max-tickets',
         type=int,
-        default=50,
+        default=defaults.get('max_tickets', 50),
         help='Maximum number of tickets to process'
     )
     
     parser.add_argument(
         '--log-level',
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
-        default=config['logging']['level'],
+        default=logging_settings.get('level', 'INFO'),
         help='Set logging level'
     )
     
     parser.add_argument(
         '--llm-model',
         type=str,
-        default=config['defaults']['llm_model'],
+        default=llm_settings.get('model', 'llama3.2:latest'),
         help='LLM model to use for assessment'
     )
     
     parser.add_argument(
         '--ollama-url',
         type=str,
-        default=config['defaults']['ollama_url'],
+        default=llm_settings.get('ollama_url', 'http://localhost:11434'),
         help='URL for Ollama API'
     )
     
     parser.add_argument(
         '--with-llm',
         action='store_true',
-        default=True,
+        default=llm_settings.get('enabled', True),
         help='Enable LLM assessment (default: True)'
     )
     
@@ -209,9 +361,15 @@ def setup_argument_parser(config: Dict[str, Any]) -> argparse.ArgumentParser:
     )
     
     parser.add_argument(
+        '--config-file',
+        type=str,
+        help='Path to YAML configuration file'
+    )
+    
+    parser.add_argument(
         '--env-file',
         type=str,
-        help='Path to .env file with configuration (default: .env or ~/.env)'
+        help='Path to .env file (fallback when no YAML config)'
     )
     
     return parser

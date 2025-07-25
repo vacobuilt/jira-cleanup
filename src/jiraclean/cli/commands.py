@@ -14,17 +14,23 @@ from jiraclean.ui.console import console
 from jiraclean.ui.components import StatusIndicator
 from jiraclean.ui.formatters import format_error
 from jiraclean.core.processor import TicketProcessor, ProcessingConfig, setup_templates
-from jiraclean.utils.config import load_environment_config, validate_config
+from jiraclean.utils.config import (
+    load_configuration, 
+    validate_config, 
+    get_instance_config, 
+    list_instances
+)
 from jiraclean.jirautil import create_jira_client
 from jiraclean.cli.app import app
 
 logger = logging.getLogger('jiraclean.cli')
 
 
-@app.command()
-def main_command(
-    project: str = typer.Option(
-        "PROJ",
+@app.callback(invoke_without_command=True)
+def main(
+    ctx: typer.Context,
+    project: Optional[str] = typer.Option(
+        None,
         "--project", "-p",
         help="🎯 Jira project key to process"
     ),
@@ -40,10 +46,10 @@ def main_command(
         min=1,
         max=1000
     ),
-    log_level: str = typer.Option(
-        "INFO",
-        "--log-level", "-l",
-        help="📝 Set logging level"
+    debug: bool = typer.Option(
+        False,
+        "--debug",
+        help="🐛 Enable debug logging"
     ),
     llm_model: Optional[str] = typer.Option(
         None,
@@ -66,6 +72,11 @@ def main_command(
         help="📄 Path to .env file with configuration",
         exists=True
     ),
+    instance: Optional[str] = typer.Option(
+        None,
+        "--instance", "-i",
+        help="🏢 Jira instance to use (trilliant, personal, highspring)"
+    ),
     interactive: bool = typer.Option(
         False,
         "--interactive",
@@ -73,29 +84,83 @@ def main_command(
     )
 ):
     """
-    🎫 Process Jira tickets for governance and cleanup.
+    🎫 Jira Cleanup - A configurable tool for Jira ticket governance
     
-    This is the main command that processes tickets in the specified project,
-    applies governance policies, and uses LLM assessment to determine
-    if tickets are quiescent (inactive) and need attention.
+    This tool helps maintain clean and efficient Jira workspaces by identifying
+    and addressing tickets that need attention, providing accountability, and
+    closing tickets that are no longer relevant.
     
-    [bold green]Examples:[/bold green]
+    [bold green]Quick Examples:[/bold green]
     
-    • [cyan]jiraclean --project MYPROJ --dry-run[/cyan]
-    • [cyan]jiraclean --project SALES --max-tickets 10 --no-llm[/cyan]
-    • [cyan]jiraclean --project DEV --production --with-llm[/cyan]
+    • [cyan]jiraclean --project PROJ --dry-run[/cyan] - Test run on project PROJ
+    • [cyan]jiraclean config list[/cyan] - Show configured Jira instances  
+    • [cyan]jiraclean setup[/cyan] - Interactive configuration setup
+    
+    [bold yellow]Safety First:[/bold yellow] Always use --dry-run first to preview changes!
     """
+    # If no subcommand is invoked and project is provided, run main processing
+    if ctx.invoked_subcommand is None:
+        if not project:
+            console.print("❌ [bold red]Error:[/bold red] --project is required")
+            console.print("Usage: [cyan]jiraclean --project PROJECT_KEY[/cyan]")
+            console.print("Or run: [cyan]jiraclean --help[/cyan] for more options")
+            raise typer.Exit(1)
+        
+        # Run the main processing logic
+        _run_main_processing(
+            project=project,
+            dry_run=dry_run,
+            max_tickets=max_tickets,
+            debug=debug,
+            llm_model=llm_model,
+            ollama_url=ollama_url,
+            with_llm=with_llm,
+            env_file=env_file,
+            instance=instance,
+            interactive=interactive
+        )
+
+
+def _run_main_processing(
+    project: str,
+    dry_run: bool,
+    max_tickets: int,
+    debug: bool,
+    llm_model: Optional[str],
+    ollama_url: Optional[str],
+    with_llm: bool,
+    env_file: Optional[Path],
+    instance: Optional[str],
+    interactive: bool
+):
+    """Internal function to run the main processing logic."""
     try:
-        # Set up logging
-        log_level_obj = getattr(logging, log_level.upper(), logging.INFO)
+        # Set up logging - only show debug logs if --debug is specified
+        if debug:
+            log_level = logging.DEBUG
+            log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        else:
+            log_level = logging.WARNING  # Hide INFO logs unless debug
+            log_format = '%(levelname)s - %(message)s'
+        
         logging.basicConfig(
-            level=log_level_obj,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            level=log_level,
+            format=log_format,
             handlers=[logging.StreamHandler()]
         )
         
         # Load configuration
-        config = load_environment_config(str(env_file) if env_file else None)
+        config = load_configuration(env_file=str(env_file) if env_file else None)
+        
+        # Get instance-specific configuration
+        try:
+            instance_config = get_instance_config(config, instance)
+        except KeyError as e:
+            console.print(StatusIndicator.error(str(e)))
+            instances = list_instances(config)
+            available = list(instances.keys())
+            console.print(f"Available instances: {', '.join(available)}")
+            raise typer.Exit(1)
         
         # Create a mock args object for validation compatibility
         import argparse
@@ -108,11 +173,12 @@ def main_command(
         args.llm_model = llm_model
         args.ollama_url = ollama_url
         args.log_level = log_level
+        args.instance = instance
         
         # Validate configuration
         if not validate_config(config, args):
             console.print(StatusIndicator.error("Configuration validation failed"))
-            console.print("Please check your .env file or environment variables")
+            console.print("Please check your configuration file or environment variables")
             raise typer.Exit(1)
         
         # Interactive confirmation for production mode
@@ -123,12 +189,12 @@ def main_command(
                 console.print(StatusIndicator.info("Switching to dry-run mode for safety"))
                 dry_run = True
         
-        # Create Jira client
+        # Create Jira client using instance-specific configuration
         jira_client = create_jira_client(
-            url=config['jira']['url'],
-            auth_method=config['jira']['auth_method'],
-            username=config['jira']['username'],
-            token=config['jira']['token'],
+            url=instance_config['url'],
+            auth_method=instance_config['auth_method'],
+            username=instance_config['username'],
+            token=instance_config['token'],
             dry_run=dry_run
         )
         
@@ -191,7 +257,7 @@ def config_command(
             console.print(StatusIndicator.info("Listing configured Jira instances..."))
             
             # Load configuration
-            config = load_environment_config()
+            config = load_configuration()
             
             console.print("📋 [bold]Current Configuration:[/bold]")
             console.print(f"• Jira URL: {config['jira']['url']}")
@@ -203,7 +269,7 @@ def config_command(
             console.print(StatusIndicator.info("Showing current configuration..."))
             
             # Load and display configuration
-            config = load_environment_config()
+            config = load_configuration()
             
             console.print("🔧 [bold]Configuration Details:[/bold]")
             console.print(f"Jira URL: {config['jira']['url']}")
@@ -220,7 +286,7 @@ def config_command(
             console.print(StatusIndicator.info(f"Testing connection to Jira..."))
             
             # Load configuration and test connection
-            config = load_environment_config()
+            config = load_configuration()
             
             try:
                 jira_client = create_jira_client(

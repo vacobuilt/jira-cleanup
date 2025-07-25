@@ -25,30 +25,4 @@ def version_callback(value: bool):
         console.print("A configurable, policy-based tool for automated Jira ticket governance")
         raise typer.Exit()
 
-# Global options that apply to all commands
-@app.callback()
-def main(
-    version: Optional[bool] = typer.Option(
-        None, 
-        "--version", 
-        callback=version_callback, 
-        is_eager=True,
-        help="Show version information and exit"
-    ),
-):
-    """
-    🎫 Jira Cleanup - A configurable tool for Jira ticket governance
-    
-    This tool helps maintain clean and efficient Jira workspaces by identifying
-    and addressing tickets that need attention, providing accountability, and
-    closing tickets that are no longer relevant.
-    
-    [bold green]Quick Examples:[/bold green]
-    
-    • [cyan]jiraclean --project PROJ --dry-run[/cyan] - Test run on project PROJ
-    • [cyan]jiraclean config list[/cyan] - Show configured Jira instances  
-    • [cyan]jiraclean setup[/cyan] - Interactive configuration setup
-    
-    [bold yellow]Safety First:[/bold yellow] Always use --dry-run first to preview changes!
-    """
-    pass
+# Version option is handled in commands.py main callback
