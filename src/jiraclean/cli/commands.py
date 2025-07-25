@@ -61,6 +61,11 @@ def main(
         "--llm-model", "-m",
         help="🤖 LLM model to use for assessment"
     ),
+    analyzer: Optional[str] = typer.Option(
+        None,
+        "--analyzer",
+        help="🔍 Analyzer type to use (quiescent, ticket_quality)"
+    ),
     ollama_url: Optional[str] = typer.Option(
         None,
         "--ollama-url",
@@ -119,6 +124,7 @@ def main(
             debug=debug,
             llm_provider=llm_provider,
             llm_model=llm_model,
+            analyzer=analyzer,
             ollama_url=ollama_url,
             with_llm=with_llm,
             env_file=env_file,
@@ -134,6 +140,7 @@ def _run_main_processing(
     debug: bool,
     llm_provider: Optional[str],
     llm_model: Optional[str],
+    analyzer: Optional[str],
     ollama_url: Optional[str],
     with_llm: bool,
     env_file: Optional[Path],
@@ -213,6 +220,7 @@ def _run_main_processing(
             llm_enabled=with_llm,
             llm_provider=llm_provider,
             llm_model=llm_model,
+            analyzer=analyzer,
             ollama_url=ollama_url,
             config_dict=config
         )

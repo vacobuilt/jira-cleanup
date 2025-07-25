@@ -13,7 +13,7 @@ from jiraclean.processors.base import TicketProcessor
 from jiraclean.jirautil import JiraClient
 from jiraclean.iterators.project import ProjectTicketIterator
 from jiraclean.iterators.filters import create_quiescence_prefilter
-from jiraclean.analysis import TicketAnalyzer
+from jiraclean.analysis import BaseTicketAnalyzer
 from jiraclean.entities import AssessmentResult
 
 logger = logging.getLogger('jiraclean.processors.quiescent')
@@ -30,7 +30,7 @@ class QuiescentTicketProcessor(TicketProcessor):
     
     def __init__(self, 
                 jira_client: JiraClient,
-                ticket_analyzer: TicketAnalyzer,
+                ticket_analyzer: BaseTicketAnalyzer,
                 min_age_days: int = 14,
                 min_inactive_days: int = 7):
         """
@@ -84,8 +84,8 @@ class QuiescentTicketProcessor(TicketProcessor):
             if ticket_data is None:
                 ticket_data = self.jira_client.get_issue(ticket_key, fields=None)
             
-            # Assess the ticket for quiescence using the injected analyzer
-            assessment = self.ticket_analyzer.assess_quiescence(ticket_data)
+            # Assess the ticket using the injected analyzer
+            assessment = self.ticket_analyzer.analyze(ticket_data)
             
             # Log the assessment
             if assessment.is_quiescent:
@@ -264,7 +264,7 @@ class QuiescentTicketProcessor(TicketProcessor):
         # If it passes the prefilter, do the LLM assessment
         try:
             # Get a quick assessment using the injected analyzer
-            assessment = self.ticket_analyzer.assess_quiescence(ticket_data)
+            assessment = self.ticket_analyzer.analyze(ticket_data)
             
             if assessment.is_quiescent:
                 return f"Would comment on ticket {ticket_key} as quiescent: {assessment.justification}"

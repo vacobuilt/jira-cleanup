@@ -29,6 +29,7 @@ class ProcessingConfig:
     llm_enabled: bool
     llm_provider: Optional[str] = None
     llm_model: Optional[str] = None
+    analyzer: Optional[str] = None
     ollama_url: Optional[str] = None
     config_dict: Optional[Dict[str, Any]] = None  # Full configuration dictionary
 
@@ -69,8 +70,11 @@ class TicketProcessor:
         if config.llm_enabled:
             # Create LLM service and analyzer using dependency injection
             from jiraclean.llm import create_langchain_service
-            from jiraclean.analysis import TicketAnalyzer
+            from jiraclean.analysis import create_analyzer, get_default_analyzer_type
             from jiraclean.utils.config import get_llm_config, get_llm_model_config
+            
+            # Get analyzer type - use CLI override or default to quiescent
+            analyzer_type = config.analyzer or get_default_analyzer_type()
             
             # Get LLM provider configuration
             provider_name = config.llm_provider
@@ -126,14 +130,16 @@ class TicketProcessor:
                     config=provider_config
                 )
                 
-                # Create ticket analyzer
-                ticket_analyzer = TicketAnalyzer(llm_service)
+                # Create ticket analyzer using the factory
+                ticket_analyzer = create_analyzer(analyzer_type, llm_service)
                 
                 # Create processor with dependency injection
                 self.llm_processor = QuiescentTicketProcessor(
                     jira_client=jira_client,
                     ticket_analyzer=ticket_analyzer
                 )
+                
+                logger.info(f"Created {analyzer_type} analyzer with {provider_name} LLM provider")
                 
             except Exception as e:
                 logger.error(f"Failed to create LLM processor: {e}")

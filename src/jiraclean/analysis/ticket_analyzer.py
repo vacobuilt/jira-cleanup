@@ -18,6 +18,7 @@ from jiraclean.prompts import PromptRegistry
 from jiraclean.utils.formatters import format_ticket_as_yaml
 from jiraclean.llm.langchain_service import LangChainLLMService, LangChainServiceError
 from jiraclean.entities import AssessmentResult
+from jiraclean.analysis.base import BaseTicketAnalyzer
 
 logger = logging.getLogger('jiraclean.analysis')
 
@@ -64,23 +65,38 @@ class AnalysisError(Exception):
     pass
 
 
-class TicketAnalyzer:
+class QuiescentAnalyzer(BaseTicketAnalyzer):
     """
-    Pure business logic for ticket analysis.
+    Analyzer for detecting quiescent (stalled/inactive) tickets.
     
-    This class contains all the business logic for analyzing tickets,
-    including prompt building, response parsing, and retry logic.
-    It uses dependency injection to receive an LLM service for communication.
+    This analyzer specializes in identifying tickets that have become inactive
+    or stalled, requiring intervention to move them forward.
     """
     
-    def __init__(self, llm_service: LangChainLLMService):
+    def get_analyzer_type(self) -> str:
+        """Get the type identifier for this analyzer."""
+        return "quiescent"
+    
+    def get_default_template(self) -> str:
+        """Get the default prompt template name for this analyzer."""
+        return "quiescent_assessment"
+    
+    def analyze(self, ticket_data: Dict[str, Any], template: Optional[str] = None, **kwargs) -> AssessmentResult:
         """
-        Initialize ticket analyzer with LLM service.
+        Analyze a ticket for quiescence.
         
         Args:
-            llm_service: LangChain LLM service for communication
+            ticket_data: Dictionary with ticket information
+            template: Optional template name override
+            **kwargs: Additional parameters
+            
+        Returns:
+            AssessmentResult with quiescence assessment
         """
-        self.llm_service = llm_service
+        if template is None:
+            template = self.get_default_template()
+        
+        return self.assess_quiescence(ticket_data, template)
     
     def assess_quiescence(self, 
                          ticket_data: Dict[str, Any], 
