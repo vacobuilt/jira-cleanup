@@ -12,7 +12,7 @@ from jiraclean.processors.base import TicketProcessor
 from jiraclean.jirautil import JiraClient
 from jiraclean.iterators.project import ProjectTicketIterator
 from jiraclean.analysis.base import BaseTicketAnalyzer
-from jiraclean.ui.formatters.base_formatter import BaseFormatter
+from jiraclean.ui.result_formatters.base_formatter import BaseFormatter
 
 logger = logging.getLogger('jiraclean.processors.generic')
 
@@ -83,7 +83,10 @@ class GenericTicketProcessor(TicketProcessor):
             
             # Use formatter to determine status and log appropriately
             status_text = self.formatter.get_status_text(analysis_result)
-            logger.info(f"Ticket {ticket_key} analysis: {status_text} - {analysis_result.justification}")
+            # Get justification from the result's dict representation
+            result_dict = analysis_result.to_dict()
+            justification = result_dict.get('justification', result_dict.get('quality_assessment', 'No justification available'))
+            logger.info(f"Ticket {ticket_key} analysis: {status_text} - {justification}")
             
             # Update statistics based on result
             if analysis_result.needs_action():
@@ -241,9 +244,13 @@ class GenericTicketProcessor(TicketProcessor):
             
             if analysis_result.needs_action():
                 status_text = self.formatter.get_status_text(analysis_result)
-                return f"Would comment on ticket {ticket_key} as {status_text}: {analysis_result.justification}"
+                result_dict = analysis_result.to_dict()
+                justification = result_dict.get('justification', result_dict.get('quality_assessment', 'No justification available'))
+                return f"Would comment on ticket {ticket_key} as {status_text}: {justification}"
             else:
                 status_text = self.formatter.get_status_text(analysis_result)
-                return f"Would skip ticket {ticket_key} ({status_text}): {analysis_result.justification}"
+                result_dict = analysis_result.to_dict()
+                justification = result_dict.get('justification', result_dict.get('quality_assessment', 'No justification available'))
+                return f"Would skip ticket {ticket_key} ({status_text}): {justification}"
         except Exception as e:
             return f"Unable to assess ticket {ticket_key}: {str(e)}"

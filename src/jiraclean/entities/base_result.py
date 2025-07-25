@@ -62,14 +62,3 @@ class BaseResult(ABC):
             Dictionary representation of the result
         """
         pass
-    
-    @property
-    @abstractmethod
-    def justification(self) -> str:
-        """
-        Get the justification/reason for this result.
-        
-        Returns:
-            Human-readable explanation of the analysis result
-        """
-        pass

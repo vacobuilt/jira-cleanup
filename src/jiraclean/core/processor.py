@@ -260,6 +260,7 @@ class TicketProcessor:
         
         # Process with LLM if enabled
         analysis_result = None
+        analysis_result_dict = None
         if self.llm_processor:
             try:
                 result = self.llm_processor.process(
@@ -271,6 +272,7 @@ class TicketProcessor:
                 if result['success'] and 'analysis_result' in result:
                     # Get the analysis result from the generic processor
                     analysis_result_dict = result['analysis_result']
+                    analysis_result = analysis_result_dict  # Set for display logic
                     
                     # Use the formatter to get display information
                     formatter = self.llm_processor.get_formatter()
@@ -306,19 +308,35 @@ class TicketProcessor:
         if self.llm_processor and analysis_result:
             # Use the formatter to create the ticket card
             formatter = self.llm_processor.get_formatter()
-            # Create a mock result object for the formatter
-            from jiraclean.entities.quiescent_result import QuiescentResult
-            if isinstance(analysis_result_dict, dict):
-                mock_result = QuiescentResult.from_dict(analysis_result_dict)
-            else:
-                mock_result = analysis_result_dict
             
-            ticket_card = formatter.format_ticket_card(formatted_ticket, mock_result)
+            # Convert dict to proper result object based on analyzer type
+            analyzer_type = self.llm_processor.get_analyzer_type()
+            if analyzer_type == 'quiescent':
+                from jiraclean.entities.quiescent_result import QuiescentResult
+                if isinstance(analysis_result_dict, dict):
+                    result_obj = QuiescentResult.from_dict(analysis_result_dict)
+                else:
+                    result_obj = analysis_result_dict
+            elif analyzer_type == 'ticket_quality':
+                from jiraclean.entities.quality_result import QualityResult
+                if isinstance(analysis_result_dict, dict):
+                    result_obj = QualityResult.from_dict(analysis_result_dict)
+                else:
+                    result_obj = analysis_result_dict
+            else:
+                # Fallback to quiescent
+                from jiraclean.entities.quiescent_result import QuiescentResult
+                if isinstance(analysis_result_dict, dict):
+                    result_obj = QuiescentResult.from_dict(analysis_result_dict)
+                else:
+                    result_obj = analysis_result_dict
+            
+            ticket_card = formatter.format_ticket_card(formatted_ticket, result_obj)
             console.print(ticket_card)
             
             # Display assessment details if available
             if self.config.dry_run:
-                assessment_panel = formatter.format_assessment_panel(mock_result)
+                assessment_panel = formatter.format_assessment_panel(result_obj)
                 console.print(assessment_panel)
         else:
             # Fallback to basic ticket card

@@ -41,10 +41,6 @@ class QualityResult(BaseResult):
             return f"Improve ticket quality: {', '.join(self.improvement_suggestions[:2])}"
         return "Improve ticket quality"
     
-    @property
-    def justification(self) -> str:
-        """Get the justification/reason for this result."""
-        return self.quality_assessment
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
