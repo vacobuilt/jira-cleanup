@@ -8,7 +8,7 @@ and fields specific to quiescence analysis.
 
 from dataclasses import dataclass
 from typing import Dict, Any
-from .base_result import BaseResult
+from jiraclean.entities.base_result import BaseResult
 
 
 @dataclass

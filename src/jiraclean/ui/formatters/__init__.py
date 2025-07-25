@@ -6,6 +6,6 @@ analysis results in the user interface. Each analyzer type has its
 own formatter that knows how to present results appropriately.
 """
 
-from .base_formatter import BaseFormatter
+from jiraclean.ui.formatters.base_formatter import BaseFormatter
 
 __all__ = ['BaseFormatter']

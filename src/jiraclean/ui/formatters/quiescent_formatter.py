@@ -12,8 +12,8 @@ from rich.table import Table
 from rich.text import Text
 from rich.columns import Columns
 
-from .base_formatter import BaseFormatter
-from ..console import console
+from jiraclean.ui.formatters.base_formatter import BaseFormatter
+from jiraclean.ui.console import console
 
 
 class QuiescentFormatter(BaseFormatter):
