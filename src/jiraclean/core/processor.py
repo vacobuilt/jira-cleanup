@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from jiraclean.ui.console import console
 from jiraclean.ui.components import TicketCard, StatusIndicator, ProgressTracker, create_summary_table
 from jiraclean.ui.formatters import format_processing_header, format_assessment, format_error
+from jiraclean.utils.ticket_extractor import TicketDataExtractor
 from jiraclean.iterators.project import ProjectTicketIterator
 from jiraclean.processors.quiescent import QuiescentTicketProcessor
 from jiraclean.llm import AssessmentResult
@@ -211,7 +212,7 @@ class TicketProcessor:
     
     def _format_ticket_data(self, ticket_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Format raw ticket data for display.
+        Format raw ticket data for display using TicketDataExtractor.
         
         Args:
             ticket_data: Raw ticket data from Jira
@@ -219,44 +220,8 @@ class TicketProcessor:
         Returns:
             Formatted ticket data
         """
-        fields = ticket_data.get('fields', {})
-        
-        return {
-            'key': ticket_data.get('key', 'UNKNOWN'),
-            'type': self._safe_get_name(fields.get('issuetype')),
-            'status': self._safe_get_name(fields.get('status')),
-            'priority': self._safe_get_name(fields.get('priority')),
-            'summary': fields.get('summary', 'No summary available'),
-            'assignee': self._format_user(fields.get('assignee')),
-            'reporter': self._format_user(fields.get('reporter')),
-            'created': fields.get('created', 'Unknown'),
-            'updated': fields.get('updated', 'Unknown')
-        }
-    
-    def _safe_get_name(self, field_data: Any) -> str:
-        """Safely extract name from Jira field data."""
-        if isinstance(field_data, dict):
-            return field_data.get('name', 'Unknown')
-        return str(field_data) if field_data else 'Unknown'
-    
-    def _format_user(self, user_data: Any) -> str:
-        """Format user data for display."""
-        if not user_data:
-            return "Unassigned"
-        
-        if isinstance(user_data, dict):
-            display_name = user_data.get('displayName')
-            email = user_data.get('emailAddress')
-            name = user_data.get('name')
-            
-            if display_name:
-                return display_name
-            elif email:
-                return email
-            elif name:
-                return name
-        
-        return str(user_data)
+        extractor = TicketDataExtractor(ticket_data)
+        return extractor.to_ui_dict()
     
     def _display_summary(self) -> None:
         """Display processing summary with Rich formatting."""

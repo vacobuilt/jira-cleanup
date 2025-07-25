@@ -9,29 +9,24 @@ from rich.table import Table
 from rich.console import Group
 
 from jiraclean.ui.console import console
+from jiraclean.utils.ticket_extractor import TicketDataExtractor, format_user_for_ui
 
 
 def format_ticket(ticket_data: Dict[str, Any]) -> Dict[str, str]:
     """
-    Format ticket data for display, extracting and cleaning key fields.
+    Format ticket data for display using TicketDataExtractor.
     
     Args:
         ticket_data: Raw ticket data from Jira
         
     Returns:
         Dictionary with formatted ticket fields
+        
+    Note: This function is deprecated. Use TicketDataExtractor.to_ui_dict() 
+    directly for new code.
     """
-    return {
-        'key': ticket_data.get('key', 'UNKNOWN'),
-        'type': ticket_data.get('issuetype', {}).get('name', 'Unknown') if isinstance(ticket_data.get('issuetype'), dict) else str(ticket_data.get('type', 'Unknown')),
-        'status': ticket_data.get('status', {}).get('name', 'Unknown') if isinstance(ticket_data.get('status'), dict) else str(ticket_data.get('status', 'Unknown')),
-        'summary': ticket_data.get('summary', 'No summary available'),
-        'priority': ticket_data.get('priority', {}).get('name', 'Unknown') if isinstance(ticket_data.get('priority'), dict) else str(ticket_data.get('priority', 'Unknown')),
-        'assignee': _format_user(ticket_data.get('assignee')),
-        'reporter': _format_user(ticket_data.get('reporter')),
-        'created': ticket_data.get('created', 'Unknown'),
-        'updated': ticket_data.get('updated', 'Unknown')
-    }
+    extractor = TicketDataExtractor(ticket_data)
+    return extractor.to_ui_dict()
 
 
 def format_assessment(assessment: Dict[str, Any]) -> Panel:
