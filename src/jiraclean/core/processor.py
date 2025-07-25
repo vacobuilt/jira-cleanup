@@ -155,11 +155,10 @@ class TicketProcessor:
             return GenericTicketProcessor(jira_client, analyzer, formatter)
         
         elif analyzer_type == 'ticket_quality':
-            from jiraclean.analysis.quality_analyzer import QualityAnalyzer
-            # TODO: Create QualityFormatter when needed
-            from jiraclean.ui.formatters.quiescent_formatter import QuiescentFormatter  # Temporary fallback
-            analyzer = QualityAnalyzer(llm_service)
-            formatter = QuiescentFormatter()  # Temporary fallback
+            from jiraclean.analysis.quality_analyzer import TicketQualityAnalyzer
+            from jiraclean.ui.formatters.quality_formatter import QualityFormatter
+            analyzer = TicketQualityAnalyzer(llm_service)
+            formatter = QualityFormatter()
             return GenericTicketProcessor(jira_client, analyzer, formatter)
         
         else:
