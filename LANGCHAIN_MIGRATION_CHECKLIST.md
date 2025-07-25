@@ -7,9 +7,11 @@ Migrate from direct Ollama HTTP requests to LangChain for LLM connections, follo
 
 ### **Phase 1: Dependencies and Setup**
 - [ ] **Add LangChain Dependencies**
-  - [ ] Add `langchain-core` to pyproject.toml (core abstractions)
-  - [ ] Add `langchain-ollama` to pyproject.toml (Ollama integration)
-  - [ ] Add `langchain-openai` to pyproject.toml (future OpenAI support)
+  - [ ] Add `langchain-core >= 0.3.27` to pyproject.toml (core abstractions)
+  - [ ] Add `langchain-ollama >= 0.2.0` to pyproject.toml (Ollama integration)
+  - [ ] Add `langchain-openai >= 0.2.0` to pyproject.toml (OpenAI support)
+  - [ ] Add `langchain-anthropic >= 0.2.0` to pyproject.toml (Claude support)
+  - [ ] Add `langchain-google-genai >= 2.0.0` to pyproject.toml (Gemini support)
   - [ ] Update poetry.lock with `poetry install`
   - [ ] Verify dependencies install correctly
 
@@ -115,12 +117,30 @@ llm:
           alias: "default"
         - name: "codellama:latest"
           alias: "code"
-    openai:  # Future support
+    openai:
       type: "openai"
       api_key: "${OPENAI_API_KEY}"
       models:
         - name: "gpt-4"
           alias: "gpt4"
+        - name: "gpt-3.5-turbo"
+          alias: "gpt35"
+    anthropic:
+      type: "anthropic"
+      api_key: "${ANTHROPIC_API_KEY}"
+      models:
+        - name: "claude-3-5-sonnet-20241022"
+          alias: "claude"
+        - name: "claude-3-haiku-20240307"
+          alias: "claude-haiku"
+    google:
+      type: "google-genai"
+      api_key: "${GOOGLE_API_KEY}"
+      models:
+        - name: "gemini-1.5-pro"
+          alias: "gemini-pro"
+        - name: "gemini-1.5-flash"
+          alias: "gemini-flash"
 ```
 
 ### **LangChain Factory Interface**
