@@ -14,7 +14,7 @@ from jiraclean.jirautil import JiraClient
 from jiraclean.iterators.project import ProjectTicketIterator
 from jiraclean.iterators.filters import create_quiescence_prefilter
 from jiraclean.analysis import TicketAnalyzer
-from jiraclean.analysis.ticket_analyzer import AssessmentResult
+from jiraclean.entities import AssessmentResult
 
 logger = logging.getLogger('jiraclean.processors.quiescent')
 
