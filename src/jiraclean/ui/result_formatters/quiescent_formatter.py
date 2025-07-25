@@ -12,7 +12,7 @@ from rich.table import Table
 from rich.text import Text
 from rich.columns import Columns
 
-from jiraclean.ui.formatters.base_formatter import BaseFormatter
+from jiraclean.ui.result_formatters.base_formatter import BaseFormatter
 from jiraclean.ui.console import console
 
 

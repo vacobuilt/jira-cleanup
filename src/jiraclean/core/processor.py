@@ -149,14 +149,14 @@ class TicketProcessor:
         
         if analyzer_type == 'quiescent':
             from jiraclean.analysis.ticket_analyzer import QuiescentAnalyzer
-            from jiraclean.ui.formatters.quiescent_formatter import QuiescentFormatter
+            from jiraclean.ui.result_formatters.quiescent_formatter import QuiescentFormatter
             analyzer = QuiescentAnalyzer(llm_service)
             formatter = QuiescentFormatter()
             return GenericTicketProcessor(jira_client, analyzer, formatter)
         
         elif analyzer_type == 'ticket_quality':
             from jiraclean.analysis.quality_analyzer import TicketQualityAnalyzer
-            from jiraclean.ui.formatters.quality_formatter import QualityFormatter
+            from jiraclean.ui.result_formatters.quality_formatter import QualityFormatter
             analyzer = TicketQualityAnalyzer(llm_service)
             formatter = QualityFormatter()
             return GenericTicketProcessor(jira_client, analyzer, formatter)
@@ -164,7 +164,7 @@ class TicketProcessor:
         else:
             # Default to quiescent analyzer
             from jiraclean.analysis.ticket_analyzer import QuiescentAnalyzer
-            from jiraclean.ui.formatters.quiescent_formatter import QuiescentFormatter
+            from jiraclean.ui.result_formatters.quiescent_formatter import QuiescentFormatter
             analyzer = QuiescentAnalyzer(llm_service)
             formatter = QuiescentFormatter()
             return GenericTicketProcessor(jira_client, analyzer, formatter)
