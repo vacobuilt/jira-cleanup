@@ -68,26 +68,59 @@ class TicketProcessor:
             # Create LLM service and analyzer using dependency injection
             from jiraclean.llm import create_langchain_service
             from jiraclean.analysis import TicketAnalyzer
+            from jiraclean.utils.config import get_llm_config, get_llm_model_config
             
-            # Use defaults if not provided
-            llm_model = config.llm_model or "llama3.2:latest"
-            ollama_url = config.ollama_url or "http://localhost:11434"
+            # Get LLM provider configuration
+            provider_name = getattr(config, 'llm_provider', None) or "ollama"
             
-            # Create LLM service
-            llm_service = create_langchain_service(
-                provider="ollama",
-                model=llm_model,
-                config={"base_url": ollama_url}
-            )
+            # Load full configuration to get provider details
+            # Note: This is a temporary approach - ideally config should be passed differently
+            full_config = {
+                'settings': {
+                    'llm': {
+                        'default_provider': provider_name,
+                        'providers': {
+                            'ollama': {
+                                'type': 'ollama',
+                                'base_url': config.ollama_url or "http://localhost:11434",
+                                'models': [
+                                    {
+                                        'name': config.llm_model or "llama3.2:latest",
+                                        'alias': 'default'
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
             
-            # Create ticket analyzer
-            ticket_analyzer = TicketAnalyzer(llm_service)
-            
-            # Create processor with dependency injection
-            self.llm_processor = QuiescentTicketProcessor(
-                jira_client=jira_client,
-                ticket_analyzer=ticket_analyzer
-            )
+            try:
+                # Get provider configuration
+                provider_config = get_llm_config(full_config, provider_name)
+                model_config = get_llm_model_config(full_config, provider_name)
+                
+                # Create LLM service with provider configuration
+                model_name = model_config.get('name') or "llama3.2:latest"
+                llm_service = create_langchain_service(
+                    provider=provider_config.get('type', provider_name),
+                    model=model_name,
+                    config=provider_config
+                )
+                
+                # Create ticket analyzer
+                ticket_analyzer = TicketAnalyzer(llm_service)
+                
+                # Create processor with dependency injection
+                self.llm_processor = QuiescentTicketProcessor(
+                    jira_client=jira_client,
+                    ticket_analyzer=ticket_analyzer
+                )
+                
+            except Exception as e:
+                logger.error(f"Failed to create LLM processor: {e}")
+                # Fall back to disabled LLM processing
+                self.llm_processor = None
     
     def process_tickets(self) -> ProcessingStats:
         """

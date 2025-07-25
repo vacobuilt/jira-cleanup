@@ -37,19 +37,25 @@ Migrate from direct Ollama HTTP requests to LangChain for LLM connections, follo
   - [x] Include logging and debugging support
 
 ### **Phase 3: Create Clean Business Logic Layer**
-- [ ] **Create TicketAnalyzer (Business Logic)**
-  - [ ] Create `src/jiraclean/analysis/ticket_analyzer.py`
-  - [ ] Move prompt building logic from assessment.py
-  - [ ] Move response parsing and sanitization logic
-  - [ ] Implement retry logic with enhanced JSON instructions
-  - [ ] Use dependency injection for LangChain service
+- [x] **Create TicketAnalyzer (Business Logic)**
+  - [x] Create `src/jiraclean/analysis/ticket_analyzer.py`
+  - [x] Move prompt building logic from assessment.py
+  - [x] Move response parsing and sanitization logic
+  - [x] Implement retry logic with enhanced JSON instructions
+  - [x] Use dependency injection for LangChain service
 
-- [ ] **Refactor Assessment Module**
-  - [ ] Remove HTTP client code from `src/jiraclean/llm/assessment.py`
-  - [ ] Keep AssessmentResult class (unchanged)
-  - [ ] Create simple facade function that uses TicketAnalyzer
-  - [ ] Maintain backward compatibility for existing callers
-  - [ ] Remove `call_ollama_api()` and related HTTP code
+- [x] **Refactor Assessment Module**
+  - [x] Remove HTTP client code from `src/jiraclean/llm/assessment.py`
+  - [x] Keep AssessmentResult class (moved to shared entities)
+  - [x] Create clean re-export module for AssessmentResult
+  - [x] No backward compatibility needed (clean implementation)
+  - [x] Remove `call_ollama_api()` and related HTTP code
+
+- [x] **Resolve Circular Import**
+  - [x] Create shared entities module (`src/jiraclean/entities/`)
+  - [x] Move AssessmentResult to entities/assessment.py
+  - [x] Update all imports to use shared entity
+  - [x] Test application functionality
 
 ### **Phase 4: Configuration Updates**
 - [ ] **Extend Configuration Management**
