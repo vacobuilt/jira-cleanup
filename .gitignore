@@ -55,5 +55,9 @@ htmlcov/
 .pytest_cache/
 .tox/
 
+# Configuration files with credentials
+config.yaml
+config.yml
+
 # Local tracking files
 jira_info.md

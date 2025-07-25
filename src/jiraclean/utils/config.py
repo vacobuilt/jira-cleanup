@@ -51,7 +51,8 @@ def load_yaml_config(config_file: Optional[str] = None) -> Optional[Dict[str, An
     # Add default search paths
     config_paths.extend([
         Path('./config.yaml'),  # Current directory
-        Path.home() / '.jiraclean' / 'config.yaml',  # User home
+        Path.home() / '.config' / 'jiraclean' / 'config.yaml',  # User config directory
+        Path.home() / '.jiraclean' / 'config.yaml',  # Legacy location (fallback)
     ])
     
     # Try to load from config files
