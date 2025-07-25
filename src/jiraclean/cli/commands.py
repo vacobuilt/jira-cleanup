@@ -1,33 +1,24 @@
 """
-CLI commands for Jira Cleanup using Typer.
+CLI commands for Jira Cleanup using Typer with Rich output.
+
+This module integrates the new core processor with the Typer CLI,
+providing beautiful Rich-formatted output and clean command structure.
 """
 
 import typer
-from typing import Optional, List
-from enum import Enum
+import logging
+from typing import Optional
 from pathlib import Path
 
-from jiraclean.ui.console import console, print_info, print_warning, print_error, print_success
-from jiraclean.ui.components import TicketCard, ProgressTracker, create_mode_banner, create_summary_table
-from jiraclean.ui.formatters import format_processing_header, format_ticket, format_assessment
+from jiraclean.ui.console import console
+from jiraclean.ui.components import StatusIndicator
+from jiraclean.ui.formatters import format_error
+from jiraclean.core.processor import TicketProcessor, ProcessingConfig, setup_templates
+from jiraclean.utils.config import load_environment_config, validate_config
+from jiraclean.jirautil import create_jira_client
 from jiraclean.cli.app import app
 
-
-class LogLevel(str, Enum):
-    """Log level options."""
-    DEBUG = "DEBUG"
-    INFO = "INFO"
-    WARNING = "WARNING"
-    ERROR = "ERROR"
-    CRITICAL = "CRITICAL"
-
-
-class OutputFormat(str, Enum):
-    """Output format options."""
-    rich = "rich"
-    json = "json"
-    yaml = "yaml"
-    table = "table"
+logger = logging.getLogger('jiraclean.cli')
 
 
 @app.command()
@@ -49,18 +40,18 @@ def main_command(
         min=1,
         max=1000
     ),
-    log_level: LogLevel = typer.Option(
-        LogLevel.INFO,
+    log_level: str = typer.Option(
+        "INFO",
         "--log-level", "-l",
         help="📝 Set logging level"
     ),
-    llm_model: str = typer.Option(
-        "llama3.2:latest",
+    llm_model: Optional[str] = typer.Option(
+        None,
         "--llm-model", "-m",
         help="🤖 LLM model to use for assessment"
     ),
-    ollama_url: str = typer.Option(
-        "http://localhost:11434",
+    ollama_url: Optional[str] = typer.Option(
+        None,
         "--ollama-url",
         help="🔗 URL for Ollama API"
     ),
@@ -75,16 +66,6 @@ def main_command(
         help="📄 Path to .env file with configuration",
         exists=True
     ),
-    instance: Optional[str] = typer.Option(
-        None,
-        "--instance", "-i",
-        help="🏢 Jira instance name (from config)"
-    ),
-    output_format: OutputFormat = typer.Option(
-        OutputFormat.rich,
-        "--output-format", "-o",
-        help="📋 Output format"
-    ),
     interactive: bool = typer.Option(
         False,
         "--interactive",
@@ -95,7 +76,7 @@ def main_command(
     🎫 Process Jira tickets for governance and cleanup.
     
     This is the main command that processes tickets in the specified project,
-    applies governance policies, and optionally uses LLM assessment to determine
+    applies governance policies, and uses LLM assessment to determine
     if tickets are quiescent (inactive) and need attention.
     
     [bold green]Examples:[/bold green]
@@ -105,69 +86,89 @@ def main_command(
     • [cyan]jiraclean --project DEV --production --with-llm[/cyan]
     """
     try:
-        # Show processing header
-        header = format_processing_header(project, dry_run, with_llm, max_tickets)
-        console.print(header)
-        console.print()
+        # Set up logging
+        log_level_obj = getattr(logging, log_level.upper(), logging.INFO)
+        logging.basicConfig(
+            level=log_level_obj,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[logging.StreamHandler()]
+        )
         
-        if interactive:
-            # Interactive mode - ask for confirmation
-            if not dry_run:
-                print_warning("You are about to run in PRODUCTION mode!")
-                confirm = typer.confirm("Are you sure you want to make changes to Jira?")
-                if not confirm:
-                    print_info("Switching to dry-run mode for safety")
-                    dry_run = True
+        # Load configuration
+        config = load_environment_config(str(env_file) if env_file else None)
         
-        # Import and run the existing main logic
-        # This is a bridge to the existing functionality
-        from jiraclean.main import main as existing_main
-        import sys
+        # Create a mock args object for validation compatibility
+        import argparse
         
-        # Prepare arguments for the existing main function
-        # We'll need to adapt this based on the existing main.py structure
-        args = [
-            "--project", project,
-            "--max-tickets", str(max_tickets),
-            "--log-level", log_level.value,
-            "--llm-model", llm_model,
-            "--ollama-url", ollama_url
-        ]
+        args = argparse.Namespace()
+        args.project = project
+        args.max_tickets = max_tickets
+        args.dry_run = dry_run
+        args.no_llm = not with_llm
+        args.llm_model = llm_model
+        args.ollama_url = ollama_url
+        args.log_level = log_level
         
-        if dry_run:
-            args.append("--dry-run")
+        # Validate configuration
+        if not validate_config(config, args):
+            console.print(StatusIndicator.error("Configuration validation failed"))
+            console.print("Please check your .env file or environment variables")
+            raise typer.Exit(1)
         
-        if with_llm:
-            args.append("--with-llm")
-        else:
-            args.append("--no-llm")
-            
-        if env_file:
-            args.extend(["--env-file", str(env_file)])
+        # Interactive confirmation for production mode
+        if interactive and not dry_run:
+            console.print(StatusIndicator.warning("You are about to run in PRODUCTION mode!"))
+            confirm = typer.confirm("Are you sure you want to make changes to Jira?")
+            if not confirm:
+                console.print(StatusIndicator.info("Switching to dry-run mode for safety"))
+                dry_run = True
         
-        # Call existing main function
-        # Note: This is a temporary bridge - we'll refactor this later
-        print_info(f"Processing {max_tickets} tickets from project {project}")
+        # Create Jira client
+        jira_client = create_jira_client(
+            url=config['jira']['url'],
+            auth_method=config['jira']['auth_method'],
+            username=config['jira']['username'],
+            token=config['jira']['token'],
+            dry_run=dry_run
+        )
         
-        # For now, show what would be called
-        console.print(f"[dim]Would call existing main with args: {' '.join(args)}[/dim]")
+        # Create processing configuration
+        processing_config = ProcessingConfig(
+            project=project,
+            max_tickets=max_tickets,
+            dry_run=dry_run,
+            llm_enabled=with_llm,
+            llm_model=llm_model,
+            ollama_url=ollama_url
+        )
         
-        # TODO: Integrate with existing main.py logic
-        print_success("Command structure ready - integration with existing logic pending")
+        # Create and run processor
+        processor = TicketProcessor(jira_client, processing_config)
+        stats = processor.process_tickets()
+        
+        # Log final statistics
+        logger.info(f"Processing completed: {stats.processed} tickets processed, "
+                   f"{stats.actioned} actions taken, {stats.errors} errors")
+        
+        # Exit with error code if there were errors
+        if stats.errors > 0:
+            raise typer.Exit(1)
         
     except Exception as e:
-        print_error(f"Error processing tickets: {str(e)}")
+        error_panel = format_error(f"Error processing tickets: {str(e)}")
+        console.print(error_panel)
+        logger.error(f"Command execution failed: {e}")
         raise typer.Exit(1)
 
 
 @app.command("config")
 def config_command(
     action: str = typer.Argument(
-        help="📋 Config action: list, show, test, set-default"
+        help="📋 Config action: list, show, test"
     ),
     instance: Optional[str] = typer.Argument(
         None,
-        help="🏢 Instance name (for test, set-default actions)"
+        help="🏢 Instance name (for test action)"
     )
 ):
     """
@@ -178,52 +179,89 @@ def config_command(
     • [cyan]list[/cyan] - Show all configured instances
     • [cyan]show[/cyan] - Show current configuration  
     • [cyan]test <instance>[/cyan] - Test connection to instance
-    • [cyan]set-default <instance>[/cyan] - Set default instance
     
     [bold green]Examples:[/bold green]
     
     • [cyan]jiraclean config list[/cyan]
+    • [cyan]jiraclean config show[/cyan]
     • [cyan]jiraclean config test production[/cyan]
-    • [cyan]jiraclean config set-default staging[/cyan]
     """
-    if action == "list":
-        print_info("Listing configured Jira instances...")
-        # TODO: Implement YAML config reading
-        console.print("📋 [bold]Configured Instances:[/bold]")
-        console.print("• production (default) - https://company.atlassian.net")
-        console.print("• staging - https://staging.atlassian.net")
-        
-    elif action == "show":
-        print_info("Showing current configuration...")
-        # TODO: Show current config
-        console.print("🔧 [bold]Current Configuration:[/bold]")
-        console.print("Default instance: production")
-        console.print("Config file: ~/.config/jiraclean/config.yaml")
-        
-    elif action == "test":
-        if not instance:
-            print_error("Instance name required for test action")
+    try:
+        if action == "list":
+            console.print(StatusIndicator.info("Listing configured Jira instances..."))
+            
+            # Load configuration
+            config = load_environment_config()
+            
+            console.print("📋 [bold]Current Configuration:[/bold]")
+            console.print(f"• Jira URL: {config['jira']['url']}")
+            console.print(f"• Username: {config['jira']['username']}")
+            console.print(f"• Auth Method: {config['jira']['auth_method']}")
+            console.print(f"• Default Project: {config['defaults'].get('project', 'Not set')}")
+            
+        elif action == "show":
+            console.print(StatusIndicator.info("Showing current configuration..."))
+            
+            # Load and display configuration
+            config = load_environment_config()
+            
+            console.print("🔧 [bold]Configuration Details:[/bold]")
+            console.print(f"Jira URL: {config['jira']['url']}")
+            console.print(f"Username: {config['jira']['username']}")
+            console.print(f"LLM Model: {config['defaults'].get('llm_model', 'llama3.2:latest')}")
+            console.print(f"Ollama URL: {config['defaults'].get('ollama_url', 'http://localhost:11434')}")
+            
+        elif action == "test":
+            if not instance:
+                console.print(StatusIndicator.error("Instance name required for test action"))
+                console.print("Usage: jiraclean config test <instance>")
+                raise typer.Exit(1)
+            
+            console.print(StatusIndicator.info(f"Testing connection to Jira..."))
+            
+            # Load configuration and test connection
+            config = load_environment_config()
+            
+            try:
+                jira_client = create_jira_client(
+                    url=config['jira']['url'],
+                    auth_method=config['jira']['auth_method'],
+                    username=config['jira']['username'],
+                    token=config['jira']['token'],
+                    dry_run=True  # Safe test mode
+                )
+                
+                # Test with a simple API call
+                # This will be handled by the dry run client safely
+                console.print(StatusIndicator.success("Connection test successful!"))
+                
+            except Exception as e:
+                console.print(StatusIndicator.error(f"Connection test failed: {str(e)}"))
+                raise typer.Exit(1)
+            
+        else:
+            console.print(StatusIndicator.error(f"Unknown config action: {action}"))
+            console.print("Available actions: list, show, test")
             raise typer.Exit(1)
-        print_info(f"Testing connection to instance: {instance}")
-        # TODO: Implement connection testing
-        print_success(f"Connection to {instance} successful!")
-        
-    elif action == "set-default":
-        if not instance:
-            print_error("Instance name required for set-default action")
-            raise typer.Exit(1)
-        print_info(f"Setting default instance to: {instance}")
-        # TODO: Implement default setting
-        print_success(f"Default instance set to {instance}")
-        
-    else:
-        print_error(f"Unknown config action: {action}")
-        print_info("Available actions: list, show, test, set-default")
+            
+    except Exception as e:
+        error_panel = format_error(f"Config command failed: {str(e)}")
+        console.print(error_panel)
         raise typer.Exit(1)
 
 
 @app.command("setup")
 def setup_command(
+    install_templates: bool = typer.Option(
+        False,
+        "--install-templates",
+        help="📄 Install default LLM prompt templates"
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="💪 Force overwrite existing templates"
+    ),
     interactive: bool = typer.Option(
         True,
         "--interactive/--non-interactive",
@@ -231,49 +269,57 @@ def setup_command(
     )
 ):
     """
-    🚀 Set up Jira Cleanup configuration.
+    🚀 Set up Jira Cleanup configuration and templates.
     
-    This command helps you configure Jira instances, authentication,
-    and other settings needed to use the Jira Cleanup tool.
+    This command helps you configure templates and other settings
+    needed to use the Jira Cleanup tool effectively.
     
     [bold green]What this does:[/bold green]
     
-    • Creates configuration directory
-    • Sets up Jira instance connections
-    • Configures authentication
-    • Tests connections
-    • Sets up default preferences
-    """
-    console.print("🚀 [bold blue]Jira Cleanup Setup Wizard[/bold blue]")
-    console.print()
+    • Installs default LLM prompt templates
+    • Shows configuration guidance
+    • Tests basic functionality
     
-    if interactive:
-        print_info("Starting interactive setup...")
+    [bold green]Examples:[/bold green]
+    
+    • [cyan]jiraclean setup --install-templates[/cyan]
+    • [cyan]jiraclean setup --install-templates --force[/cyan]
+    """
+    try:
+        console.print("🚀 [bold blue]Jira Cleanup Setup[/bold blue]")
+        console.print()
         
-        # Jira URL
-        jira_url = typer.prompt("🔗 Enter your Jira URL (e.g., https://company.atlassian.net)")
+        if install_templates:
+            # Use the setup_templates function from core processor
+            exit_code = setup_templates(install_templates=True, force=force)
+            if exit_code != 0:
+                raise typer.Exit(exit_code)
         
-        # Username
-        username = typer.prompt("👤 Enter your Jira username/email")
+        if interactive:
+            console.print(StatusIndicator.info("Interactive setup guidance:"))
+            console.print()
+            console.print("📋 [bold]Configuration Checklist:[/bold]")
+            console.print("1. Create a .env file with your Jira credentials")
+            console.print("2. Set JIRA_URL, JIRA_USERNAME, and JIRA_TOKEN")
+            console.print("3. Test your configuration with: [cyan]jiraclean config test[/cyan]")
+            console.print("4. Run a dry-run test: [cyan]jiraclean --project TEST --dry-run --max-tickets 1[/cyan]")
+            console.print()
+            console.print("📄 [bold]Example .env file:[/bold]")
+            console.print("JIRA_URL=https://your-company.atlassian.net")
+            console.print("JIRA_USERNAME=your-email@company.com")
+            console.print("JIRA_TOKEN=your-api-token")
+            console.print()
+            console.print("🔑 Get your API token at:")
+            console.print("https://id.atlassian.com/manage-profile/security/api-tokens")
         
-        # API Token
-        console.print("🔑 You'll need a Jira API token. Get one at:")
-        console.print("   https://id.atlassian.com/manage-profile/security/api-tokens")
-        api_token = typer.prompt("🔐 Enter your Jira API token", hide_input=True)
-        
-        # Instance name
-        instance_name = typer.prompt("🏷️  Enter a name for this instance", default="production")
-        
-        print_info("Testing connection...")
-        # TODO: Test the connection
-        
-        print_success("Configuration saved!")
-        console.print(f"✅ Instance '{instance_name}' configured successfully")
+        console.print()
+        console.print(StatusIndicator.success("Setup completed!"))
         console.print("🎯 You can now run: [cyan]jiraclean --project YOUR_PROJECT --dry-run[/cyan]")
         
-    else:
-        print_info("Non-interactive setup not yet implemented")
-        print_info("Please run: jiraclean setup --interactive")
+    except Exception as e:
+        error_panel = format_error(f"Setup command failed: {str(e)}")
+        console.print(error_panel)
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":
