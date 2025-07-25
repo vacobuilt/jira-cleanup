@@ -6,14 +6,14 @@ Migrate from direct Ollama HTTP requests to LangChain for LLM connections, follo
 ## 📋 **Migration Checklist**
 
 ### **Phase 1: Dependencies and Setup**
-- [ ] **Add LangChain Dependencies**
-  - [ ] Add `langchain-core >= 0.3.27` to pyproject.toml (core abstractions)
-  - [ ] Add `langchain-ollama >= 0.2.0` to pyproject.toml (Ollama integration)
-  - [ ] Add `langchain-openai >= 0.2.0` to pyproject.toml (OpenAI support)
-  - [ ] Add `langchain-anthropic >= 0.2.0` to pyproject.toml (Claude support)
-  - [ ] Add `langchain-google-genai >= 2.0.0` to pyproject.toml (Gemini support)
-  - [ ] Update poetry.lock with `poetry install`
-  - [ ] Verify dependencies install correctly
+- [x] **Add LangChain Dependencies**
+  - [x] Add `langchain-core >= 0.3.27` to pyproject.toml (core abstractions)
+  - [x] Add `langchain-ollama >= 0.3.6` to pyproject.toml (Ollama integration)
+  - [x] Add `langchain-openai >= 0.3.28` to pyproject.toml (OpenAI support)
+  - [x] Add `langchain-anthropic >= 0.3.17` to pyproject.toml (Claude support)
+  - [x] Add `langchain-google-genai >= 2.1.8` to pyproject.toml (Gemini support)
+  - [x] Update poetry.lock with `poetry update`
+  - [x] Verify dependencies install correctly
 
 - [ ] **Update Configuration Schema**
   - [ ] Extend config.yaml to support multiple LLM providers
