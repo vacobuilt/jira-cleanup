@@ -36,19 +36,20 @@ Migrate from direct Ollama HTTP requests to LangChain for LLM connections, follo
   - [x] Add proper error handling and retries
   - [x] Include logging and debugging support
 
-### **Phase 3: Replace Current Implementation**
-- [ ] **Update QuiescentTicketProcessor**
-  - [ ] Replace direct HTTP calls with LangChain service
-  - [ ] Maintain existing prompt formatting
-  - [ ] Preserve all current functionality
-  - [ ] Keep same response parsing logic
-  - [ ] Ensure backward compatibility
+### **Phase 3: Create Clean Business Logic Layer**
+- [ ] **Create TicketAnalyzer (Business Logic)**
+  - [ ] Create `src/jiraclean/analysis/ticket_analyzer.py`
+  - [ ] Move prompt building logic from assessment.py
+  - [ ] Move response parsing and sanitization logic
+  - [ ] Implement retry logic with enhanced JSON instructions
+  - [ ] Use dependency injection for LangChain service
 
-- [ ] **Update LLM Assessment Module**
-  - [ ] Modify `src/jiraclean/llm/assessment.py` if needed
-  - [ ] Ensure AssessmentResult class remains unchanged
-  - [ ] Maintain existing error handling patterns
-  - [ ] Preserve response validation logic
+- [ ] **Refactor Assessment Module**
+  - [ ] Remove HTTP client code from `src/jiraclean/llm/assessment.py`
+  - [ ] Keep AssessmentResult class (unchanged)
+  - [ ] Create simple facade function that uses TicketAnalyzer
+  - [ ] Maintain backward compatibility for existing callers
+  - [ ] Remove `call_ollama_api()` and related HTTP code
 
 ### **Phase 4: Configuration Updates**
 - [ ] **Extend Configuration Management**

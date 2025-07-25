@@ -3,16 +3,18 @@ Quiescent ticket processor implementation.
 
 This module provides a processor that analyzes tickets for quiescence
 using pre-filtering and LLM assessment to take appropriate actions.
+Uses clean dependency injection architecture.
 """
 
 import logging
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 
 from jiraclean.processors.base import TicketProcessor
 from jiraclean.jirautil import JiraClient
 from jiraclean.iterators.project import ProjectTicketIterator
 from jiraclean.iterators.filters import create_quiescence_prefilter
-from jiraclean.llm import assess_ticket, AssessmentResult
+from jiraclean.analysis import TicketAnalyzer
+from jiraclean.analysis.ticket_analyzer import AssessmentResult
 
 logger = logging.getLogger('jiraclean.processors.quiescent')
 
@@ -23,12 +25,12 @@ class QuiescentTicketProcessor(TicketProcessor):
     
     This processor uses pre-filtering and LLM assessment to determine if a ticket 
     is quiescent, and takes action based on the assessment (e.g., adding a comment).
+    Uses clean dependency injection with TicketAnalyzer.
     """
     
     def __init__(self, 
                 jira_client: JiraClient,
-                llm_model: str = "llama3.2:latest",
-                ollama_url: str = "http://localhost:11434",
+                ticket_analyzer: TicketAnalyzer,
                 min_age_days: int = 14,
                 min_inactive_days: int = 7):
         """
@@ -36,15 +38,13 @@ class QuiescentTicketProcessor(TicketProcessor):
         
         Args:
             jira_client: JiraClient instance for Jira API access
-            llm_model: LLM model to use for assessment
-            ollama_url: URL for Ollama API
+            ticket_analyzer: TicketAnalyzer instance for LLM assessment
             min_age_days: Minimum age in days for a ticket to be considered quiescent
             min_inactive_days: Minimum number of days without activity
         """
         super().__init__()
         self.jira_client = jira_client
-        self.llm_model = llm_model
-        self.ollama_url = ollama_url
+        self.ticket_analyzer = ticket_analyzer
         self.min_age_days = min_age_days
         self.min_inactive_days = min_inactive_days
         
@@ -84,12 +84,8 @@ class QuiescentTicketProcessor(TicketProcessor):
             if ticket_data is None:
                 ticket_data = self.jira_client.get_issue(ticket_key, fields=None)
             
-            # Assess the ticket for quiescence
-            assessment = assess_ticket(
-                ticket_data, 
-                model=self.llm_model,
-                ollama_url=self.ollama_url
-            )
+            # Assess the ticket for quiescence using the injected analyzer
+            assessment = self.ticket_analyzer.assess_quiescence(ticket_data)
             
             # Log the assessment
             if assessment.is_quiescent:
@@ -204,9 +200,6 @@ class QuiescentTicketProcessor(TicketProcessor):
             'results': []
         }
         
-        # Start processing tickets
-        start_processed = self._stats['processed']
-        
         try:
             # Iterate through tickets that pass pre-filtering
             for ticket_key in iterator:
@@ -270,12 +263,8 @@ class QuiescentTicketProcessor(TicketProcessor):
         
         # If it passes the prefilter, do the LLM assessment
         try:
-            # Get a quick assessment
-            assessment = assess_ticket(
-                ticket_data, 
-                model=self.llm_model,
-                ollama_url=self.ollama_url
-            )
+            # Get a quick assessment using the injected analyzer
+            assessment = self.ticket_analyzer.assess_quiescence(ticket_data)
             
             if assessment.is_quiescent:
                 return f"Would comment on ticket {ticket_key} as quiescent: {assessment.justification}"
