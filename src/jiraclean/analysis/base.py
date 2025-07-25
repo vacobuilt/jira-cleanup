@@ -7,7 +7,7 @@ enabling a pluggable architecture for various analysis strategies.
 
 from abc import ABC, abstractmethod
 from typing import Dict, Any
-from jiraclean.entities import AssessmentResult
+from jiraclean.entities.base_result import BaseResult
 from jiraclean.llm.langchain_service import LangChainLLMService
 
 
@@ -29,7 +29,7 @@ class BaseTicketAnalyzer(ABC):
         self.llm_service = llm_service
     
     @abstractmethod
-    def analyze(self, ticket_data: Dict[str, Any], **kwargs) -> AssessmentResult:
+    def analyze(self, ticket_data: Dict[str, Any], **kwargs) -> BaseResult:
         """
         Analyze a ticket and return assessment results.
         
@@ -38,7 +38,7 @@ class BaseTicketAnalyzer(ABC):
             **kwargs: Additional analyzer-specific parameters
             
         Returns:
-            AssessmentResult with analysis findings
+            BaseResult with analysis findings
             
         Raises:
             AnalysisError: If analysis fails
