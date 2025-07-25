@@ -136,7 +136,21 @@ def load_environment_config(env_file: Optional[str] = None) -> Dict[str, Any]:
             'llm': {
                 'ollama_url': os.getenv('OLLAMA_URL', 'http://localhost:11434'),
                 'model': os.getenv('LLM_MODEL', 'llama3.2:latest'),
-                'enabled': True
+                'enabled': True,
+                # New multi-provider configuration (backward compatible)
+                'default_provider': 'ollama',
+                'providers': {
+                    'ollama': {
+                        'type': 'ollama',
+                        'base_url': os.getenv('OLLAMA_URL', 'http://localhost:11434'),
+                        'models': [
+                            {
+                                'name': os.getenv('LLM_MODEL', 'llama3.2:latest'),
+                                'alias': 'default'
+                            }
+                        ]
+                    }
+                }
             }
         }
     }
@@ -264,6 +278,164 @@ def validate_config(config: Dict[str, Any], args: argparse.Namespace) -> bool:
         return False
 
 
+def get_llm_config(config: Dict[str, Any], provider: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Get LLM configuration for a specific provider.
+    
+    Args:
+        config: Full configuration dictionary
+        provider: Name of LLM provider to get, or None for default
+        
+    Returns:
+        LLM provider configuration dictionary
+        
+    Raises:
+        KeyError: If specified provider doesn't exist
+    """
+    settings = config.get('settings', {})
+    llm_settings = settings.get('llm', {})
+    
+    # Get default provider if none specified
+    if provider is None:
+        provider = llm_settings.get('default_provider', 'ollama')
+    
+    # Get providers configuration
+    providers = llm_settings.get('providers', {})
+    if provider not in providers:
+        available = list(providers.keys())
+        raise KeyError(f"LLM provider '{provider}' not found. Available providers: {available}")
+    
+    return providers[provider]
+
+
+def list_llm_providers(config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    """
+    List all available LLM providers.
+    
+    Args:
+        config: Full configuration dictionary
+        
+    Returns:
+        Dictionary of provider name -> provider info
+    """
+    settings = config.get('settings', {})
+    llm_settings = settings.get('llm', {})
+    providers = llm_settings.get('providers', {})
+    default_provider = llm_settings.get('default_provider')
+    
+    result = {}
+    for name, provider_config in providers.items():
+        models = provider_config.get('models', [])
+        result[name] = {
+            'type': provider_config.get('type', name),
+            'models': [model.get('name', '') for model in models],
+            'model_count': len(models),
+            'is_default': name == default_provider
+        }
+    
+    return result
+
+
+def get_llm_model_config(config: Dict[str, Any], provider: Optional[str] = None, model_alias: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Get specific model configuration from a provider.
+    
+    Args:
+        config: Full configuration dictionary
+        provider: Name of LLM provider, or None for default
+        model_alias: Model alias to find, or None for default model
+        
+    Returns:
+        Dictionary with model configuration
+        
+    Raises:
+        KeyError: If provider or model not found
+    """
+    provider_config = get_llm_config(config, provider)
+    models = provider_config.get('models', [])
+    
+    if not models:
+        raise KeyError(f"No models configured for provider '{provider}'")
+    
+    # If no alias specified, use provider's default_model or fallback logic
+    if model_alias is None:
+        # First try to use the provider's default_model setting
+        default_model = provider_config.get('default_model')
+        if default_model:
+            # Find model by name matching default_model
+            for model in models:
+                if model.get('name') == default_model:
+                    return model
+        
+        # Fallback: Look for model with 'default' alias
+        for model in models:
+            if model.get('alias') == 'default':
+                return model
+        
+        # Final fallback: use first model
+        return models[0]
+    
+    # Find model by alias
+    for model in models:
+        if model.get('alias') == model_alias:
+            return model
+    
+    # If not found by alias, try by name
+    for model in models:
+        if model.get('name') == model_alias:
+            return model
+    
+    available_aliases = [model.get('alias', model.get('name', '')) for model in models]
+    raise KeyError(f"Model '{model_alias}' not found in provider '{provider}'. Available: {available_aliases}")
+
+
+def validate_llm_config(config: Dict[str, Any], provider: Optional[str] = None) -> bool:
+    """
+    Validate LLM provider configuration.
+    
+    Args:
+        config: Configuration dictionary
+        provider: Provider to validate, or None for default
+        
+    Returns:
+        True if configuration is valid, False otherwise
+    """
+    try:
+        provider_config = get_llm_config(config, provider)
+        provider_type = provider_config.get('type')
+        
+        if not provider_type:
+            logger.error(f"LLM provider '{provider}' missing 'type' field")
+            return False
+        
+        # Validate provider-specific requirements
+        if provider_type == 'ollama':
+            if not provider_config.get('base_url'):
+                logger.error(f"Ollama provider '{provider}' missing 'base_url'")
+                return False
+        elif provider_type in ['openai', 'anthropic', 'google-genai']:
+            if not provider_config.get('api_key'):
+                logger.error(f"Provider '{provider}' missing 'api_key'")
+                return False
+        
+        # Validate models
+        models = provider_config.get('models', [])
+        if not models:
+            logger.error(f"Provider '{provider}' has no models configured")
+            return False
+        
+        for model in models:
+            if not model.get('name'):
+                logger.error(f"Model in provider '{provider}' missing 'name' field")
+                return False
+        
+        return True
+        
+    except KeyError as e:
+        logger.error(str(e))
+        return False
+
+
 def setup_argument_parser(config: Dict[str, Any]) -> argparse.ArgumentParser:
     """
     Set up the command-line argument parser with consistent defaults.
@@ -328,6 +500,18 @@ def setup_argument_parser(config: Dict[str, Any]) -> argparse.ArgumentParser:
         help='Set logging level'
     )
     
+    # LLM provider selection
+    providers = llm_settings.get('providers', {})
+    default_provider = llm_settings.get('default_provider', 'ollama')
+    
+    parser.add_argument(
+        '--llm-provider',
+        type=str,
+        choices=list(providers.keys()) if providers else ['ollama'],
+        default=default_provider,
+        help=f'LLM provider to use (default: {default_provider})'
+    )
+    
     parser.add_argument(
         '--llm-model',
         type=str,
@@ -339,7 +523,7 @@ def setup_argument_parser(config: Dict[str, Any]) -> argparse.ArgumentParser:
         '--ollama-url',
         type=str,
         default=llm_settings.get('ollama_url', 'http://localhost:11434'),
-        help='URL for Ollama API'
+        help='URL for Ollama API (legacy, use config file for new providers)'
     )
     
     parser.add_argument(
