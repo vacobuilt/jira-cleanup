@@ -17,7 +17,8 @@ from typing import Dict, Any, Optional
 from jiraclean.prompts import PromptRegistry
 from jiraclean.utils.formatters import format_ticket_as_yaml
 from jiraclean.llm.langchain_service import LangChainLLMService, LangChainServiceError
-from jiraclean.entities import AssessmentResult
+from jiraclean.entities.quiescent_result import QuiescentResult
+from jiraclean.entities.base_result import BaseResult
 from jiraclean.analysis.base import BaseTicketAnalyzer
 
 logger = logging.getLogger('jiraclean.analysis')
@@ -81,7 +82,7 @@ class QuiescentAnalyzer(BaseTicketAnalyzer):
         """Get the default prompt template name for this analyzer."""
         return "quiescent_assessment"
     
-    def analyze(self, ticket_data: Dict[str, Any], template: Optional[str] = None, **kwargs) -> AssessmentResult:
+    def analyze(self, ticket_data: Dict[str, Any], template: Optional[str] = None, **kwargs) -> QuiescentResult:
         """
         Analyze a ticket for quiescence.
         
@@ -91,7 +92,7 @@ class QuiescentAnalyzer(BaseTicketAnalyzer):
             **kwargs: Additional parameters
             
         Returns:
-            AssessmentResult with quiescence assessment
+            QuiescentResult with quiescence assessment
         """
         if template is None:
             template = self.get_default_template()
@@ -100,7 +101,7 @@ class QuiescentAnalyzer(BaseTicketAnalyzer):
     
     def assess_quiescence(self, 
                          ticket_data: Dict[str, Any], 
-                         template: str = "quiescent_assessment") -> AssessmentResult:
+                         template: str = "quiescent_assessment") -> QuiescentResult:
         """
         Assess a ticket for quiescence using the configured LLM.
         
@@ -109,7 +110,7 @@ class QuiescentAnalyzer(BaseTicketAnalyzer):
             template: Name of the prompt template to use
             
         Returns:
-            AssessmentResult with LLM assessment
+            QuiescentResult with LLM assessment
             
         Raises:
             AnalysisError: If analysis fails
@@ -145,18 +146,18 @@ class QuiescentAnalyzer(BaseTicketAnalyzer):
                         return result
                     except Exception as retry_error:
                         logger.error(f"RETRY ATTEMPT #2 FAILED: Ticket {ticket_key} - Error: {str(retry_error)}")
-                        return AssessmentResult.default()
+                        return QuiescentResult.default()
                 else:
                     # Not a JSON parsing error, so don't retry
                     logger.error(f"Error during ticket assessment for {ticket_key}: {str(e)}")
-                    return AssessmentResult.default()
+                    return QuiescentResult.default()
                     
         except Exception as e:
             logger.error(f"Error during ticket assessment for {ticket_key}: {str(e)}")
             if isinstance(e, KeyError):
                 # Re-raise template not found errors
                 raise
-            return AssessmentResult.default()
+            return QuiescentResult.default()
     
     def _build_assessment_prompt(self, ticket_yaml: str, template_name: str) -> str:
         """
@@ -231,15 +232,15 @@ class QuiescentAnalyzer(BaseTicketAnalyzer):
         except LangChainServiceError as e:
             raise AnalysisError(f"Failed to generate LLM response: {e}") from e
     
-    def _parse_llm_response(self, response: str) -> AssessmentResult:
+    def _parse_llm_response(self, response: str) -> QuiescentResult:
         """
-        Parse the LLM response into an AssessmentResult.
+        Parse the LLM response into a QuiescentResult.
         
         Args:
             response: The raw response from the LLM
             
         Returns:
-            AssessmentResult instance
+            QuiescentResult instance
             
         Raises:
             ValueError: If the response cannot be parsed
@@ -295,7 +296,7 @@ class QuiescentAnalyzer(BaseTicketAnalyzer):
                 result_dict = json.loads(sanitized)
                 logger.info("Successfully parsed JSON after sanitization")
                 
-            return AssessmentResult.from_dict(result_dict)
+            return QuiescentResult.from_dict(result_dict)
         except Exception as e:
             logger.error(f"Error parsing LLM response: {str(e)}")
             logger.error(f"Raw response: {response}")

@@ -10,7 +10,7 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-from jiraclean.entities import AssessmentResult
+from jiraclean.entities.quality_result import QualityResult
 from jiraclean.utils.formatters import format_ticket_as_yaml
 from jiraclean.llm.langchain_service import LangChainServiceError
 from jiraclean.analysis.base import BaseTicketAnalyzer
@@ -38,7 +38,7 @@ class TicketQualityAnalyzer(BaseTicketAnalyzer):
         """Get the default prompt template name for this analyzer."""
         return "ticket_quality_assessment"
     
-    def analyze(self, ticket_data: Dict[str, Any], template: Optional[str] = None, **kwargs) -> AssessmentResult:
+    def analyze(self, ticket_data: Dict[str, Any], template: Optional[str] = None, **kwargs) -> QualityResult:
         """
         Analyze a ticket for quality and completeness.
         
@@ -48,7 +48,7 @@ class TicketQualityAnalyzer(BaseTicketAnalyzer):
             **kwargs: Additional parameters
             
         Returns:
-            AssessmentResult with quality assessment
+            QualityResult with quality assessment
         """
         if template is None:
             template = self.get_default_template()
@@ -57,7 +57,7 @@ class TicketQualityAnalyzer(BaseTicketAnalyzer):
     
     def assess_quality(self, 
                       ticket_data: Dict[str, Any], 
-                      template: str = "ticket_quality_assessment") -> AssessmentResult:
+                      template: str = "ticket_quality_assessment") -> QualityResult:
         """
         Assess a ticket for quality using the configured LLM.
         
@@ -66,7 +66,7 @@ class TicketQualityAnalyzer(BaseTicketAnalyzer):
             template: Name of the prompt template to use
             
         Returns:
-            AssessmentResult with quality assessment
+            QualityResult with quality assessment
             
         Raises:
             AnalysisError: If analysis fails
@@ -79,7 +79,7 @@ class TicketQualityAnalyzer(BaseTicketAnalyzer):
             # Validate ticket data
             if not self.validate_ticket_data(ticket_data):
                 logger.error(f"Invalid ticket data for {ticket_key}")
-                return AssessmentResult.default()
+                return QualityResult.default()
             
             # Build the assessment prompt
             ticket_yaml = format_ticket_as_yaml(ticket_data)
@@ -96,14 +96,14 @@ class TicketQualityAnalyzer(BaseTicketAnalyzer):
                 
             except ValueError as e:
                 logger.error(f"Quality assessment failed for {ticket_key}: {str(e)}")
-                return AssessmentResult.default()
+                return QualityResult.default()
                     
         except Exception as e:
             logger.error(f"Error during quality assessment for {ticket_key}: {str(e)}")
             if isinstance(e, KeyError):
                 # Re-raise template not found errors
                 raise
-            return AssessmentResult.default()
+            return QualityResult.default()
     
     def _build_quality_prompt(self, ticket_yaml: str, template_name: str) -> str:
         """
@@ -166,15 +166,15 @@ class TicketQualityAnalyzer(BaseTicketAnalyzer):
         except LangChainServiceError as e:
             raise AnalysisError(f"Failed to generate LLM response: {e}") from e
     
-    def _parse_quality_response(self, response: str) -> AssessmentResult:
+    def _parse_quality_response(self, response: str) -> QualityResult:
         """
-        Parse the LLM response into an AssessmentResult for quality assessment.
+        Parse the LLM response into a QualityResult for quality assessment.
         
         Args:
             response: The raw response from the LLM
             
         Returns:
-            AssessmentResult instance
+            QualityResult instance
             
         Raises:
             ValueError: If the response cannot be parsed
@@ -219,7 +219,7 @@ class TicketQualityAnalyzer(BaseTicketAnalyzer):
                 'planned_comment': result_dict.get('planned_comment', 'Quality assessment completed')
             }
             
-            return AssessmentResult.from_dict(quality_result)
+            return QualityResult.from_dict(quality_result)
             
         except Exception as e:
             logger.error(f"Error parsing quality assessment response: {str(e)}")

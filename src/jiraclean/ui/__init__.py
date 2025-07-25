@@ -8,7 +8,7 @@ interactive elements.
 
 from jiraclean.ui.console import console
 from jiraclean.ui.components import TicketCard, StatusIndicator, ProgressTracker
-from jiraclean.ui.formatters import format_ticket, format_assessment, format_error
+from jiraclean.ui.formatters import format_ticket, format_assessment, format_error, format_processing_header
 
 __all__ = [
     'console',

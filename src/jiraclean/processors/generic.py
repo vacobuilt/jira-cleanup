@@ -1,9 +1,8 @@
 """
-Quiescent ticket processor implementation.
+Generic ticket processor implementation.
 
-This module provides a processor that analyzes tickets for quiescence
-using pre-filtering and LLM assessment to take appropriate actions.
-Uses clean dependency injection architecture.
+This module provides a processor that works with any analyzer and formatter,
+making the processing framework completely agnostic to analysis types.
 """
 
 import logging
@@ -12,46 +11,41 @@ from typing import Dict, Any, List, Optional
 from jiraclean.processors.base import TicketProcessor
 from jiraclean.jirautil import JiraClient
 from jiraclean.iterators.project import ProjectTicketIterator
-from jiraclean.iterators.filters import create_quiescence_prefilter
-from jiraclean.analysis import BaseTicketAnalyzer
-from jiraclean.entities import AssessmentResult
+from jiraclean.analysis.base import BaseTicketAnalyzer
+from jiraclean.ui.result_formatters.base_formatter import BaseFormatter
 
-logger = logging.getLogger('jiraclean.processors.quiescent')
+logger = logging.getLogger('jiraclean.processors.generic')
 
 
-class QuiescentTicketProcessor(TicketProcessor):
+class GenericTicketProcessor(TicketProcessor):
     """
-    Processor that detects and responds to quiescent tickets.
+    Generic processor that works with any analyzer and formatter.
     
-    This processor uses pre-filtering and LLM assessment to determine if a ticket 
-    is quiescent, and takes action based on the assessment (e.g., adding a comment).
-    Uses clean dependency injection with TicketAnalyzer.
+    This processor is completely agnostic to analysis types and delegates
+    all analysis-specific logic to the analyzer and formatter components.
     """
     
     def __init__(self, 
                 jira_client: JiraClient,
-                ticket_analyzer: BaseTicketAnalyzer,
-                min_age_days: int = 14,
-                min_inactive_days: int = 7):
+                analyzer: BaseTicketAnalyzer,
+                formatter: BaseFormatter):
         """
-        Initialize the quiescent ticket processor.
+        Initialize the generic ticket processor.
         
         Args:
             jira_client: JiraClient instance for Jira API access
-            ticket_analyzer: TicketAnalyzer instance for LLM assessment
-            min_age_days: Minimum age in days for a ticket to be considered quiescent
-            min_inactive_days: Minimum number of days without activity
+            analyzer: Analyzer instance for ticket assessment
+            formatter: Formatter instance for UI display
         """
         super().__init__()
         self.jira_client = jira_client
-        self.ticket_analyzer = ticket_analyzer
-        self.min_age_days = min_age_days
-        self.min_inactive_days = min_inactive_days
+        self.analyzer = analyzer
+        self.formatter = formatter
         
-        # Additional statistics specific to quiescent detection
+        # Generic statistics - no analysis-specific fields
         self._stats.update({
-            'quiescent': 0,
-            'non_quiescent': 0,
+            'needs_action': 0,
+            'no_action_needed': 0,
             'assessment_failures': 0,
             'comments_added': 0,
             'prefiltered': 0
@@ -62,7 +56,7 @@ class QuiescentTicketProcessor(TicketProcessor):
                 ticket_data: Optional[Dict[str, Any]] = None, 
                 dry_run: bool = True) -> Dict[str, Any]:
         """
-        Process a single ticket.
+        Process a single ticket using the configured analyzer and formatter.
         
         Args:
             ticket_key: The Jira issue key
@@ -84,65 +78,61 @@ class QuiescentTicketProcessor(TicketProcessor):
             if ticket_data is None:
                 ticket_data = self.jira_client.get_issue(ticket_key, fields=None)
             
-            # Assess the ticket using the injected analyzer
-            assessment = self.ticket_analyzer.analyze(ticket_data)
+            # Analyze the ticket using the injected analyzer
+            analysis_result = self.analyzer.analyze(ticket_data)
             
-            # Log the assessment
-            if assessment.is_quiescent:
-                logger.info(f"Ticket {ticket_key} is quiescent: {assessment.justification}")
-                self._stats['quiescent'] += 1
+            # Use formatter to determine status and log appropriately
+            status_text = self.formatter.get_status_text(analysis_result)
+            # Get justification from the result's dict representation
+            result_dict = analysis_result.to_dict()
+            justification = result_dict.get('justification', result_dict.get('quality_assessment', 'No justification available'))
+            logger.info(f"Ticket {ticket_key} analysis: {status_text} - {justification}")
+            
+            # Update statistics based on result
+            if analysis_result.needs_action():
+                self._stats['needs_action'] += 1
             else:
-                logger.info(f"Ticket {ticket_key} is not quiescent: {assessment.justification}")
-                self._stats['non_quiescent'] += 1
+                self._stats['no_action_needed'] += 1
             
-            # Take action if quiescent
-            if assessment.is_quiescent:
-                # Add comment if not in dry run mode
+            # Take action if needed
+            if analysis_result.needs_action():
+                comment = analysis_result.get_planned_comment()
+                
                 if not dry_run:
                     try:
-                        comment_result = self.jira_client.add_comment(
-                            ticket_key, 
-                            assessment.planned_comment
-                        )
-                        
+                        comment_result = self.jira_client.add_comment(ticket_key, comment)
                         self._stats['comments_added'] += 1
                         
                         result['actions'].append({
                             'type': 'comment',
-                            'description': 'Added quiescent ticket comment',
+                            'description': f'Added {self.analyzer.get_analyzer_type()} comment',
                             'success': True,
                             'details': {
                                 'comment_id': comment_result.get('id'),
-                                'comment_body': assessment.planned_comment[:100] + '...'  # Truncate for logging
+                                'comment_body': comment[:100] + '...'
                             }
                         })
                     except Exception as e:
                         logger.error(f"Error adding comment to {ticket_key}: {str(e)}")
                         result['actions'].append({
                             'type': 'comment',
-                            'description': 'Failed to add quiescent ticket comment',
+                            'description': f'Failed to add {self.analyzer.get_analyzer_type()} comment',
                             'success': False,
-                            'details': {
-                                'error': str(e)
-                            }
+                            'details': {'error': str(e)}
                         })
                 else:
-                    # In dry run mode, just log the planned action
-                    # The actual comment content will be printed by the DryRunJiraClient
-                    self.jira_client.add_comment(ticket_key, assessment.planned_comment)
-                    
+                    # Dry run mode
+                    self.jira_client.add_comment(ticket_key, comment)
                     result['actions'].append({
                         'type': 'comment',
-                        'description': 'Would add quiescent ticket comment (dry run)',
+                        'description': f'Would add {self.analyzer.get_analyzer_type()} comment (dry run)',
                         'success': True,
-                        'details': {
-                            'dry_run': True
-                        }
+                        'details': {'dry_run': True}
                     })
             
             result['success'] = True
             result['message'] = f"Ticket {ticket_key} processed successfully"
-            result['assessment'] = assessment.to_dict()
+            result['analysis_result'] = analysis_result.to_dict()
             
         except Exception as e:
             logger.error(f"Error processing ticket {ticket_key}: {str(e)}")
@@ -150,7 +140,6 @@ class QuiescentTicketProcessor(TicketProcessor):
             result['success'] = False
             result['message'] = f"Error processing ticket: {str(e)}"
         
-        # Update overall statistics
         self._update_stats(result)
         return result
     
@@ -161,18 +150,14 @@ class QuiescentTicketProcessor(TicketProcessor):
                       dry_run: bool = True,
                       skip_prefilter: bool = False) -> Dict[str, Any]:
         """
-        Process all tickets in a project that meet the quiescence criteria.
-        
-        This method creates a ProjectTicketIterator with pre-filtering for basic
-        quiescence criteria (age, recent activity, status), then processes each
-        ticket that passes the filter with the LLM for a more detailed assessment.
+        Process all tickets in a project using the configured analyzer.
         
         Args:
             project_key: The Jira project key
             max_tickets: Maximum number of tickets to process
             statuses_to_exclude: List of statuses to exclude
             dry_run: If True, only simulate actions without making changes
-            skip_prefilter: If True, skip pre-filtering and process all tickets
+            skip_prefilter: If True, skip pre-filtering
             
         Returns:
             Dictionary with processing results
@@ -180,30 +165,30 @@ class QuiescentTicketProcessor(TicketProcessor):
         # Use default statuses if not provided
         statuses_to_exclude = statuses_to_exclude or ["Closed", "Done", "Resolved"]
         
-        # Create project iterator with pre-filtering
+        # Create project iterator - let analyzer determine filtering
         iterator = ProjectTicketIterator(
             jira_client=self.jira_client,
             project_key=project_key,
             statuses_to_exclude=statuses_to_exclude,
             max_results=max_tickets,
-            # Only apply pre-filter if not explicitly skipped
-            use_default_quiescence_filter=not skip_prefilter,
+            # Generic processor doesn't assume specific filtering
+            use_default_quiescence_filter=False,
         )
         
         results = {
             'project_key': project_key,
             'tickets_processed': 0,
             'tickets_prefiltered': 0,
-            'tickets_quiescent': 0,
+            'tickets_needing_action': 0,
             'tickets_with_actions': 0,
             'processing_errors': 0,
             'results': []
         }
         
         try:
-            # Iterate through tickets that pass pre-filtering
+            # Iterate through tickets
             for ticket_key in iterator:
-                # Get full ticket data if iterator doesn't already have it cached
+                # Get full ticket data
                 ticket_data = iterator.get_ticket_data(ticket_key)
                 
                 # Process the individual ticket
@@ -212,10 +197,12 @@ class QuiescentTicketProcessor(TicketProcessor):
                 # Update statistics
                 results['tickets_processed'] += 1
                 if ticket_result.get('success', False):
-                    if ticket_result.get('assessment', {}).get('is_quiescent', False):
-                        results['tickets_quiescent'] += 1
-                        if ticket_result.get('actions'):
-                            results['tickets_with_actions'] += 1
+                    analysis_result = ticket_result.get('analysis_result', {})
+                    if analysis_result and hasattr(analysis_result, 'needs_action'):
+                        if analysis_result.needs_action():
+                            results['tickets_needing_action'] += 1
+                            if ticket_result.get('actions'):
+                                results['tickets_with_actions'] += 1
                 else:
                     results['processing_errors'] += 1
                 
@@ -226,20 +213,19 @@ class QuiescentTicketProcessor(TicketProcessor):
                 if results['tickets_processed'] % 10 == 0:
                     logger.info(f"Processed {results['tickets_processed']} tickets in {project_key}")
             
-            # Update final statistics
-            if iterator.has_filter:
-                results['tickets_prefiltered'] = iterator.filtered_count
-                self._stats['prefiltered'] += iterator.filtered_count
-                
-                logger.info(f"Pre-filtering stats: {iterator.filtered_count} tickets filtered out, " 
-                           f"{results['tickets_processed']} passed through to LLM")
-            
             return results
         except Exception as e:
             logger.error(f"Error processing project {project_key}: {str(e)}")
-            # Add the error to results
             results['error'] = str(e)
             return results
+    
+    def get_formatter(self) -> BaseFormatter:
+        """Get the formatter for UI display."""
+        return self.formatter
+    
+    def get_analyzer_type(self) -> str:
+        """Get the analyzer type for logging and display."""
+        return self.analyzer.get_analyzer_type()
     
     def describe_action(self, ticket_key: str, ticket_data: Dict[str, Any]) -> str:
         """
@@ -252,23 +238,19 @@ class QuiescentTicketProcessor(TicketProcessor):
         Returns:
             Human-readable description of the action
         """
-        # First check basic criteria using the prefilter
-        prefilter = create_quiescence_prefilter(
-            min_age_days=self.min_age_days,
-            min_inactive_days=self.min_inactive_days
-        )
-        
-        if not prefilter.passes(ticket_data):
-            return f"Would skip ticket {ticket_key} (fails basic quiescence criteria)"
-        
-        # If it passes the prefilter, do the LLM assessment
         try:
-            # Get a quick assessment using the injected analyzer
-            assessment = self.ticket_analyzer.analyze(ticket_data)
+            # Get assessment using the injected analyzer
+            analysis_result = self.analyzer.analyze(ticket_data)
             
-            if assessment.is_quiescent:
-                return f"Would comment on ticket {ticket_key} as quiescent: {assessment.justification}"
+            if analysis_result.needs_action():
+                status_text = self.formatter.get_status_text(analysis_result)
+                result_dict = analysis_result.to_dict()
+                justification = result_dict.get('justification', result_dict.get('quality_assessment', 'No justification available'))
+                return f"Would comment on ticket {ticket_key} as {status_text}: {justification}"
             else:
-                return f"Would skip ticket {ticket_key} (not quiescent): {assessment.justification}"
+                status_text = self.formatter.get_status_text(analysis_result)
+                result_dict = analysis_result.to_dict()
+                justification = result_dict.get('justification', result_dict.get('quality_assessment', 'No justification available'))
+                return f"Would skip ticket {ticket_key} ({status_text}): {justification}"
         except Exception as e:
             return f"Unable to assess ticket {ticket_key}: {str(e)}"

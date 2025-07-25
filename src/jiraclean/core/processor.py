@@ -14,8 +14,8 @@ from jiraclean.ui.components import TicketCard, StatusIndicator, ProgressTracker
 from jiraclean.ui.formatters import format_processing_header, format_assessment, format_error
 from jiraclean.utils.ticket_extractor import TicketDataExtractor
 from jiraclean.iterators.project import ProjectTicketIterator
-from jiraclean.processors.quiescent import QuiescentTicketProcessor
-from jiraclean.llm import AssessmentResult
+from jiraclean.processors.generic import GenericTicketProcessor
+from jiraclean.entities.base_result import BaseResult
 
 logger = logging.getLogger('jiraclean.core')
 
@@ -130,13 +130,11 @@ class TicketProcessor:
                     config=provider_config
                 )
                 
-                # Create ticket analyzer using the factory
-                ticket_analyzer = create_analyzer(analyzer_type, llm_service)
-                
-                # Create processor with dependency injection
-                self.llm_processor = QuiescentTicketProcessor(
+                # Create processor using the triple pattern factory
+                self.llm_processor = self._create_processor(
+                    analyzer_type=analyzer_type,
                     jira_client=jira_client,
-                    ticket_analyzer=ticket_analyzer
+                    llm_service=llm_service
                 )
                 
                 logger.info(f"Created {analyzer_type} analyzer with {provider_name} LLM provider")
@@ -145,6 +143,31 @@ class TicketProcessor:
                 logger.error(f"Failed to create LLM processor: {e}")
                 # Fall back to disabled LLM processing
                 self.llm_processor = None
+    
+    def _create_processor(self, analyzer_type: str, jira_client, llm_service) -> GenericTicketProcessor:
+        """Create a processor with the appropriate analyzer and formatter using the triple pattern."""
+        
+        if analyzer_type == 'quiescent':
+            from jiraclean.analysis.ticket_analyzer import QuiescentAnalyzer
+            from jiraclean.ui.result_formatters.quiescent_formatter import QuiescentFormatter
+            analyzer = QuiescentAnalyzer(llm_service)
+            formatter = QuiescentFormatter()
+            return GenericTicketProcessor(jira_client, analyzer, formatter)
+        
+        elif analyzer_type == 'ticket_quality':
+            from jiraclean.analysis.quality_analyzer import TicketQualityAnalyzer
+            from jiraclean.ui.result_formatters.quality_formatter import QualityFormatter
+            analyzer = TicketQualityAnalyzer(llm_service)
+            formatter = QualityFormatter()
+            return GenericTicketProcessor(jira_client, analyzer, formatter)
+        
+        else:
+            # Default to quiescent analyzer
+            from jiraclean.analysis.ticket_analyzer import QuiescentAnalyzer
+            from jiraclean.ui.result_formatters.quiescent_formatter import QuiescentFormatter
+            analyzer = QuiescentAnalyzer(llm_service)
+            formatter = QuiescentFormatter()
+            return GenericTicketProcessor(jira_client, analyzer, formatter)
     
     def process_tickets(self) -> ProcessingStats:
         """
@@ -236,7 +259,8 @@ class TicketProcessor:
         formatted_ticket = self._format_ticket_data(ticket_data)
         
         # Process with LLM if enabled
-        assessment = None
+        analysis_result = None
+        analysis_result_dict = None
         if self.llm_processor:
             try:
                 result = self.llm_processor.process(
@@ -245,12 +269,22 @@ class TicketProcessor:
                     dry_run=self.config.dry_run
                 )
                 
-                if result['success'] and 'assessment' in result:
-                    assessment = AssessmentResult.from_dict(result['assessment'])
+                if result['success'] and 'analysis_result' in result:
+                    # Get the analysis result from the generic processor
+                    analysis_result_dict = result['analysis_result']
+                    analysis_result = analysis_result_dict  # Set for display logic
                     
-                    # Update statistics
-                    if assessment.is_quiescent:
-                        self.stats.quiescent += 1
+                    # Use the formatter to get display information
+                    formatter = self.llm_processor.get_formatter()
+                    
+                    # Update statistics based on whether action is needed
+                    if analysis_result_dict and hasattr(analysis_result_dict, 'get') and analysis_result_dict.get('needs_action'):
+                        self.stats.actioned += 1
+                        # For backward compatibility with quiescence stats
+                        if 'is_quiescent' in analysis_result_dict and analysis_result_dict['is_quiescent']:
+                            self.stats.quiescent += 1
+                        else:
+                            self.stats.non_quiescent += 1
                     else:
                         self.stats.non_quiescent += 1
                     
@@ -270,14 +304,44 @@ class TicketProcessor:
                 ))
                 logger.error(f"LLM processing error for {ticket_key}: {e}")
         
-        # Display ticket card with assessment
-        ticket_card = TicketCard.create(formatted_ticket, assessment.to_dict() if assessment else None)
-        console.print(ticket_card)
-        
-        # Display assessment details if available
-        if assessment and self.config.dry_run:
-            assessment_panel = format_assessment(assessment.to_dict())
-            console.print(assessment_panel)
+        # Display ticket card with analysis result
+        if self.llm_processor and analysis_result:
+            # Use the formatter to create the ticket card
+            formatter = self.llm_processor.get_formatter()
+            
+            # Convert dict to proper result object based on analyzer type
+            analyzer_type = self.llm_processor.get_analyzer_type()
+            if analyzer_type == 'quiescent':
+                from jiraclean.entities.quiescent_result import QuiescentResult
+                if isinstance(analysis_result_dict, dict):
+                    result_obj = QuiescentResult.from_dict(analysis_result_dict)
+                else:
+                    result_obj = analysis_result_dict
+            elif analyzer_type == 'ticket_quality':
+                from jiraclean.entities.quality_result import QualityResult
+                if isinstance(analysis_result_dict, dict):
+                    result_obj = QualityResult.from_dict(analysis_result_dict)
+                else:
+                    result_obj = analysis_result_dict
+            else:
+                # Fallback to quiescent
+                from jiraclean.entities.quiescent_result import QuiescentResult
+                if isinstance(analysis_result_dict, dict):
+                    result_obj = QuiescentResult.from_dict(analysis_result_dict)
+                else:
+                    result_obj = analysis_result_dict
+            
+            ticket_card = formatter.format_ticket_card(formatted_ticket, result_obj)
+            console.print(ticket_card)
+            
+            # Display assessment details if available
+            if self.config.dry_run:
+                assessment_panel = formatter.format_assessment_panel(result_obj)
+                console.print(assessment_panel)
+        else:
+            # Fallback to basic ticket card
+            ticket_card = TicketCard.create(formatted_ticket, None)
+            console.print(ticket_card)
         
         console.print()  # Add spacing between tickets
     

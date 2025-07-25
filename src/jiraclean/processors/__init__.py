@@ -6,9 +6,9 @@ what happens to tickets after they are selected by iterators.
 """
 
 from .base import TicketProcessor
-from .quiescent import QuiescentTicketProcessor
+from .generic import GenericTicketProcessor
 
 __all__ = [
     'TicketProcessor',
-    'QuiescentTicketProcessor'
+    'GenericTicketProcessor'
 ]
