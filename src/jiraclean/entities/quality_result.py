@@ -9,6 +9,7 @@ and fields specific to quality analysis.
 from dataclasses import dataclass
 from typing import Dict, Any, List
 from jiraclean.entities.base_result import BaseResult
+from jiraclean.utils.type_conversion import safe_int_conversion, safe_list_conversion
 
 
 @dataclass
@@ -56,12 +57,12 @@ class QualityResult(BaseResult):
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'QualityResult':
-        """Create from dictionary."""
+        """Create from dictionary with robust type conversion for all LLM output formats."""
         return cls(
             needs_improvement=data.get('needs_improvement', False),
-            quality_score=data.get('quality_score', 5),
+            quality_score=safe_int_conversion(data.get('quality_score', 5), default=5),
             quality_assessment=data.get('quality_assessment', 'No assessment provided'),
-            improvement_suggestions=data.get('improvement_suggestions', []),
+            improvement_suggestions=safe_list_conversion(data.get('improvement_suggestions', [])),
             responsible_party=data.get('responsible_party', 'Unknown'),
             suggested_deadline=data.get('suggested_deadline', 'No deadline suggested'),
             planned_comment=data.get('planned_comment', 'No comment generated')

@@ -9,6 +9,7 @@ and fields specific to quiescence analysis.
 from dataclasses import dataclass
 from typing import Dict, Any
 from jiraclean.entities.base_result import BaseResult
+from jiraclean.utils.type_conversion import safe_float_conversion, safe_int_conversion
 
 
 @dataclass
@@ -55,11 +56,11 @@ class QuiescentResult(BaseResult):
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'QuiescentResult':
-        """Create from dictionary."""
+        """Create from dictionary with robust type conversion for all LLM output formats."""
         return cls(
             is_quiescent=data.get('is_quiescent', False),
-            staleness_score=data.get('staleness_score', 0.0),
-            inactivity_days=data.get('inactivity_days', 0),
+            staleness_score=safe_float_conversion(data.get('staleness_score', 0.0)),
+            inactivity_days=safe_int_conversion(data.get('inactivity_days', 0)),
             justification=data.get('justification', 'No justification provided'),
             responsible_party=data.get('responsible_party', 'Unknown'),
             suggested_action=data.get('suggested_action', 'No action suggested'),
