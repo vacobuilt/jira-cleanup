@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "jira-cleanup"
-version = "0.1.0"
+version = "1.0.0"
 description = "A configurable, policy-based tool for automated Jira ticket governance"
 authors = ["Trilliant <info@trilliant.io>"]
 readme = "README.md"

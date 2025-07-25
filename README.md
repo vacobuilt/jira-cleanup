@@ -9,7 +9,8 @@ Jira Cleanup provides a robust framework for implementing governance policies ac
 ### Key Features
 
 - **Automated Governance**: Apply customizable policies across configurable sets of Jira tickets
-- **AI-Powered Assessment**: Optional LLM-based intelligent ticket analysis
+- **Multi-Provider AI Assessment**: Support for Ollama, OpenAI, Anthropic, and Google LLM providers
+- **Multi-Instance Jira Support**: Manage multiple Jira instances with easy switching
 - **Safe Testing**: Comprehensive dry-run mode for risk-free testing
 - **Flexible Configuration**: Environment variables, command-line options, and template customization
 - **Extensible Architecture**: Plugin-ready design for custom iterators, processors, and LLM providers
