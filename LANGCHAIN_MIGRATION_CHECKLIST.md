@@ -58,19 +58,19 @@ Migrate from direct Ollama HTTP requests to LangChain for LLM connections, follo
   - [x] Test application functionality
 
 ### **Phase 4: Configuration Updates**
-- [ ] **Extend Configuration Management**
-  - [ ] Update `src/jiraclean/utils/config.py`
-  - [ ] Add LLM provider configuration loading
-  - [ ] Support multiple named LLM configurations
-  - [ ] Maintain default behavior for existing configs
-  - [ ] Add validation for LLM provider settings
+- [x] **Extend Configuration Management**
+  - [x] Update `src/jiraclean/utils/config.py`
+  - [x] Add LLM provider configuration loading
+  - [x] Support multiple named LLM configurations
+  - [x] Maintain default behavior for existing configs
+  - [x] Add validation for LLM provider settings
 
-- [ ] **Update CLI Integration**
-  - [ ] Modify CLI to support LLM provider selection
-  - [ ] Add `--llm-provider` parameter (optional)
-  - [ ] Maintain existing `--llm-model` parameter
-  - [ ] Ensure backward compatibility with existing commands
-  - [ ] Update help text and documentation
+- [x] **Update CLI Integration**
+  - [x] Modify CLI to support LLM provider selection
+  - [x] Add `--llm-provider` parameter (optional)
+  - [x] Maintain existing `--llm-model` parameter
+  - [x] Ensure backward compatibility with existing commands
+  - [x] Update help text and documentation
 
 ### **Phase 5: Testing and Validation**
 - [ ] **Unit Testing**
